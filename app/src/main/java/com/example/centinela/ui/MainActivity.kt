@@ -27,14 +27,22 @@ fun CentinelaNavigation() {
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = "login") {
         composable("login") {
-            LoginScreen(onLoginSuccess = {
-                navController.navigate("map") {
-                    popUpTo("login") { inclusive = true }
+            LoginScreen(
+                onLoginSuccess = {
+                    navController.navigate("map") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                },
+                onWebClick = {
+                    navController.navigate("webview")
                 }
-            })
+            )
         }
         composable("map") {
             MapScreen()
+        }
+        composable("webview") {
+            WebViewScreen(url = "https://www.google.com")
         }
     }
 }

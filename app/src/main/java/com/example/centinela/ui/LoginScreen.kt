@@ -19,7 +19,8 @@ import com.google.firebase.auth.PhoneAuthProvider
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel = viewModel(),
-    onLoginSuccess: () -> Unit = {}
+    onLoginSuccess: () -> Unit = {},
+    onWebClick: () -> Unit = {}
 ) {
     var telefono by remember { mutableStateOf("") }
     val contexto = LocalContext.current // Necesario para Firebase
@@ -95,6 +96,13 @@ fun LoginScreen(
         // BOTÓN TEMPORAL PARA IR AL MAPA (Solo desarrollo)
         TextButton(onClick = onLoginSuccess) {
             Text(text = "DEBUG: Ir al Mapa directamente")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // BOTÓN PARA ABRIR EL WEBVIEW
+        TextButton(onClick = onWebClick) {
+            Text(text = "Ver términos o sitio web")
         }
     }
 }
