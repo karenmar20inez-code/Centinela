@@ -1,8 +1,5 @@
 package com.example.centinela.ui
 
-import android.annotation.SuppressLint
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,12 +17,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-@SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(
@@ -40,43 +39,48 @@ fun MapScreen(
     var rutaTrazada by remember { mutableStateOf(false) }
     var planificadorVisible by remember { mutableStateOf(true) }
     
-    // URL inicial: CDMX Zócalo
-    var urlMapa by remember { mutableStateOf("https://www.google.com.mx/maps/@19.4326,-99.1332,15z") }
+    // Coordenadas iniciales: CDMX Zócalo
+    val zocalo = LatLng(19.4326, -99.1332)
+    val angel = LatLng(19.4271, -99.1677)
+    val bellasArtes = LatLng(19.4352, -99.1412)
+    
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(zocalo, 12f)
+    }
     
     val scope = rememberCoroutineScope()
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // --- MOTOR DE MAPA REAL (WEBVIEW FORZADO A DESKTOP PARA EVITAR ERRORES) ---
-        AndroidView(
-            factory = { context ->
-                WebView(context).apply {
-                    webViewClient = WebViewClient()
-                    settings.javaScriptEnabled = true
-                    settings.domStorageEnabled = true
-                    
-                    // FORZAR MODO ESCRITORIO: Esto evita que Google Maps intente abrir la App externa
-                    val desktopUserAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                    settings.userAgentString = desktopUserAgent
-                    
-                    settings.loadWithOverviewMode = true
-                    settings.useWideViewPort = true
-                    loadUrl(urlMapa)
-                }
-            },
-            update = { webView ->
-                if (webView.url != urlMapa && !analizandoRuta) {
-                    webView.loadUrl(urlMapa)
-                }
-            },
-            modifier = Modifier.fillMaxSize()
-        )
+        // --- MAPA NATIVO DE GOOGLE ---
+        GoogleMap(
+            modifier = Modifier.fillMaxSize(),
+            cameraPositionState = cameraPositionState,
+            uiSettings = MapUiSettings(zoomControlsEnabled = false)
+        ) {
+            // Marcadores simulados de Cámaras C5
+            Marker(
+                state = rememberMarkerState(position = zocalo),
+                title = "Cámara C5: Zócalo",
+                snippet = "Punto de vigilancia activo"
+            )
+            Marker(
+                state = rememberMarkerState(position = angel),
+                title = "Cámara C5: Ángel",
+                snippet = "Punto de vigilancia activo"
+            )
+            Marker(
+                state = rememberMarkerState(position = bellasArtes),
+                title = "Cámara C5: Bellas Artes",
+                snippet = "Punto de vigilancia activo"
+            )
+        }
 
         // --- INTERFAZ DE RUTAS (COLAPSABLE) ---
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
-                .zIndex(1f) // Asegurar que esté arriba del mapa
+                .zIndex(1f)
         ) {
             AnimatedVisibility(
                 visible = planificadorVisible,
@@ -135,9 +139,12 @@ fun MapScreen(
                                         analizandoRuta = true
                                         delay(2000)
                                         analizandoRuta = false
-                                        urlMapa = "https://www.google.com.mx/maps/dir/$origen/$destino"
                                         rutaTrazada = true
-                                        planificadorVisible = false // Ocultar para ver el mapa
+                                        planificadorVisible = false
+                                        // Simular movimiento de cámara al destino
+                                        cameraPositionState.animate(
+                                            CameraUpdateFactory.newLatLngZoom(zocalo, 14f)
+                                        )
                                     }
                                 }
                             },
@@ -172,7 +179,7 @@ fun MapScreen(
                 Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(color = Color.White)
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text("Calculando ruta con menos incidentes...", color = Color.White, textAlign = TextAlign.Center)
+                    Text("Analizando cámaras C5 y zonas seguras...", color = Color.White, textAlign = TextAlign.Center)
                 }
             }
         }
@@ -204,12 +211,12 @@ fun MapScreen(
             }
         }
 
-        // --- BOTÓN DE PÁNICO (LA CAPA MÁS ALTA) ---
+        // --- BOTÓN DE PÁNICO ---
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 30.dp)
-                .zIndex(5f) // Arriba de todo
+                .zIndex(5f)
         ) {
             if (cuentaRegresiva == 0) {
                 Button(
