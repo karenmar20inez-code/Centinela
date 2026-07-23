@@ -1,40 +1,27 @@
 package com.example.centinela.viewmodel
 
-import android.app.Activity
 import androidx.lifecycle.ViewModel
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.PhoneAuthOptions
-import com.google.firebase.auth.PhoneAuthProvider
-import java.util.concurrent.TimeUnit
 
+/**
+ * ViewModel simplificado para la simulación del proyecto.
+ * No requiere conexión a Firebase.
+ */
 class LoginViewModel : ViewModel() {
 
-    // Instancia de Firebase para manejar la sesión
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
-
     /**
-     * Esta función verificará si el usuario ya inició sesión antes
-     * para enviarlo directo al mapa sin pedirle sus datos de nuevo.
+     * Simula la verificación de una sesión activa.
      */
     fun verificarSesionActiva(): Boolean {
-        val usuarioActual = auth.currentUser
-        return usuarioActual != null
+        return false // Siempre pedimos login para la demostración
     }
 
     /**
-     * Envía un mensaje SMS al número proporcionado para iniciar la verificación.
+     * Simula el proceso de envío de SMS.
+     * En la simulación, esto simplemente devuelve éxito.
      */
-    fun enviarCodigoSms(
-        numero: String,
-        actividad: Activity,
-        callbacks: PhoneAuthProvider.OnVerificationStateChangedCallbacks
-    ) {
-        val opciones = PhoneAuthOptions.newBuilder(auth)
-            .setPhoneNumber(numero)
-            .setTimeout(60L, TimeUnit.SECONDS)
-            .setActivity(actividad)
-            .setCallbacks(callbacks)
-            .build()
-        PhoneAuthProvider.verifyPhoneNumber(opciones)
+    fun simularEnvioSms(numero: String, onExito: () -> Unit) {
+        // En una app real aquí iría la lógica de Firebase.
+        // Aquí simplemente ejecutamos la navegación al mapa.
+        onExito()
     }
 }
