@@ -1,55 +1,43 @@
-package com.example.centinela
+package com.example.centinela.ui
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import com.example.centinela.ui.ContactosScreen
-import com.example.centinela.ui.PanicButtonScreen
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.Composable
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.centinela.ui.theme.CentinelaTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
             CentinelaTheme {
-                MainAppLayout()
+                CentinelaNavigation()
             }
         }
     }
 }
 
 @Composable
-fun MainAppLayout() {
-    var tabSeleccionada by remember { mutableIntStateOf(0) }
-
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = tabSeleccionada == 0,
-                    onClick = { tabSeleccionada = 0 },
-                    label = { Text("Pánico") },
-                    icon = { Text("🚨") }
-                )
-                NavigationBarItem(
-                    selected = tabSeleccionada == 1,
-                    onClick = { tabSeleccionada = 1 },
-                    label = { Text("Contacto") },
-                    icon = { Text("👤") }
-                )
-            }
+fun CentinelaNavigation() {
+    val navController = rememberNavController()
+    NavHost(navController = navController, startDestination = "login") {
+        composable("login") {
+            LoginScreen(
+                onLoginSuccess = {
+                    navController.navigate("map") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
+            )
         }
-    ) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding)) {
-            if (tabSeleccionada == 0) {
-                PanicButtonScreen()
-            } else {
-                ContactosScreen()
-            }
+        composable("map") {
+            MapScreen()
         }
     }
 }
+
