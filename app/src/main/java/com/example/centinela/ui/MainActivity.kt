@@ -27,17 +27,30 @@ fun CentinelaNavigation() {
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = "login") {
         composable("login") {
-            LoginScreen(
-                onLoginSuccess = {
-                    navController.navigate("map") {
-                        popUpTo("login") { inclusive = true }
+            LoginScreen(onLoginSuccess = {
+                navController.navigate("map") {
+                    popUpTo("login") { inclusive = true }
+                }
+            })
+        }
+        composable("map") {
+            MapScreen(
+                onGoToContacts = { navController.navigate("contacts") },
+                onGoToProfile = { navController.navigate("profile") }
+            )
+        }
+        composable("contacts") {
+            ContactsScreen(onBack = { navController.popBackStack() })
+        }
+        composable("profile") {
+            ProfileScreen(
+                onBack = { navController.popBackStack() },
+                onLogout = {
+                    navController.navigate("login") {
+                        popUpTo("map") { inclusive = true }
                     }
                 }
             )
         }
-        composable("map") {
-            MapScreen()
-        }
     }
 }
-
