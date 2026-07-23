@@ -1,25 +1,28 @@
 package com.example.centinela.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.rememberCameraPositionState
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun MapScreen() {
-    // Coordenadas iniciales: Centro de la CDMX (Zócalo)
-    val cdmx = LatLng(19.4326, -99.1332)
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(cdmx, 12f)
-    }
-
-    GoogleMap(
-        modifier = Modifier.fillMaxSize(),
-        cameraPositionState = cameraPositionState
+    // Placeholder de Mapa ya que se eliminó Google Maps
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.LightGray),
+        contentAlignment = Alignment.Center
     ) {
-        // Aquí agregaremos los marcadores de las cámaras del C5 después
+        Text(
+            text = "El mapa de Google ha sido removido.\nAquí se implementará el nuevo mapa.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = Color.DarkGray
+        )
     }
 }

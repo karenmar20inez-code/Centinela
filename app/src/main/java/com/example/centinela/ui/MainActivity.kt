@@ -32,17 +32,11 @@ fun CentinelaNavigation() {
                     navController.navigate("map") {
                         popUpTo("login") { inclusive = true }
                     }
-                },
-                onWebClick = {
-                    navController.navigate("webview")
                 }
             )
         }
         composable("map") {
             MapScreen()
-        }
-        composable("webview") {
-            WebViewScreen(url = "https://www.google.com")
         }
     }
 }
