@@ -1,7 +1,17 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+}
+
+// Leer secretos localmente para el código de la app
+val localProperties = Properties().apply {
+    val file = File(rootProject.projectDir, "local.properties")
+    if (file.exists()) {
+        file.inputStream().use { load(it) }
+    }
 }
 
 android {
@@ -16,6 +26,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        // Inyectar el token como una variable de recursos
+        resValue("string", "mapbox_access_token", localProperties.getProperty("MAPBOX_PUBLIC_TOKEN") ?: "")
     }
 
     buildTypes {
