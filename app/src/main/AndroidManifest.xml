@@ -8,6 +8,8 @@
 
     <!-- Especificar que la telefonía no es obligatoria para que la app sea compatible con tablets -->
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:allowBackup="true"
