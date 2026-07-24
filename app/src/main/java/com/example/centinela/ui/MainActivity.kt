@@ -39,11 +39,26 @@ fun CentinelaNavigation() {
             )
         }
         composable("map") {
-            MapScreen()
+            MapScreen(
+                onGoToContacts = { navController.navigate("contacts") },
+                onGoToProfile = { navController.navigate("profile") }
+            )
         }
         composable("webview") {
             WebViewScreen(url = "https://www.google.com")
         }
+        composable("contacts") {
+            ContactsScreen(onBack = { navController.popBackStack() })
+        }
+        composable("profile") {
+            ProfileScreen(
+                onBack = { navController.popBackStack() },
+                onLogout = {
+                    navController.navigate("login") {
+                        popUpTo("map") { inclusive = true }
+                    }
+                }
+            )
+        }
     }
 }
-
