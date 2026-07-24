@@ -15,14 +15,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import com.mapbox.geojson.Point
-import com.mapbox.maps.extension.compose.MapboxMap
-import com.mapbox.maps.extension.compose.animation.viewport.rememberMapViewportState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -50,15 +46,6 @@ fun MapScreen() {
     var telefonoUsuario by rememberSaveable { mutableStateOf("") }
 
     val puedeRegistrar = nombreUsuario.isNotBlank() && telefonoUsuario.isNotBlank()
-
-    // --- LÓGICA DEL MAPA ---
-    val mapViewportState = rememberMapViewportState {
-        setCameraOptions {
-            // CDMX Zócalo
-            center(Point.fromLngLat(-99.1332, 19.4326))
-            zoom(14.0)
-        }
-    }
 
     var mostrarAlerta by rememberSaveable { mutableStateOf(false) }
     var origen by rememberSaveable { mutableStateOf("") }
@@ -104,7 +91,7 @@ fun MapScreen() {
                 }
             }
         } else {
-            // MAPA PROFESIONAL MAPBOX
+            // MAPA SIMULADO (Placeholder)
             val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
             ModalNavigationDrawer(
@@ -118,10 +105,13 @@ fun MapScreen() {
                     }
                 }
             ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    MapboxMap(
-                        modifier = Modifier.fillMaxSize(),
-                        mapViewportState = mapViewportState
+                Box(modifier = Modifier.fillMaxSize().background(Color.LightGray)) {
+                    
+                    Text(
+                        text = "Mapa de la CDMX (Placeholder)\nEl servicio de Mapbox ha sido removido.",
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Color.DarkGray,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
 
                     // Botón Menú
@@ -150,11 +140,6 @@ fun MapScreen() {
                                             delay(2000)
                                             analizandoRuta = false
                                             planificadorVisible = false
-                                            // Transición de cámara simple
-                                            mapViewportState.setCameraOptions {
-                                                center(Point.fromLngLat(-99.1611, 19.4271))
-                                                zoom(16.0)
-                                            }
                                         }
                                     },
                                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp)

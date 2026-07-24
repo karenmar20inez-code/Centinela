@@ -11,9 +11,6 @@ kotlin = "2.1.10"
 composeBom = "2026.02.01"
 navigationCompose = "2.9.8"
 materialIconsExtended = "1.7.0"
-mapbox = "11.27.0"
-mapboxSearch = "2.27.0"
-mapboxNavigation = "3.25.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -33,10 +30,6 @@ androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-te
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIconsExtended" }
-mapbox-compose = { group = "com.mapbox.extension", name = "maps-compose-ndk27", version.ref = "mapbox" }
-mapbox-search = { group = "com.mapbox.search", name = "mapbox-search-android-ndk27", version.ref = "mapboxSearch" }
-mapbox-navigation = { group = "com.mapbox.navigationcore", name = "navigation-ndk27", version.ref = "mapboxNavigation" }
-mapbox-maps = { group = "com.mapbox.maps", name = "android-ndk27", version.ref = "mapbox" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
