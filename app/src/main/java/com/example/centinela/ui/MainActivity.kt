@@ -25,14 +25,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun CentinelaNavigation() {
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = "login") {
-        composable("login") {
-            LoginScreen(onLoginSuccess = {
-                navController.navigate("map") {
-                    popUpTo("login") { inclusive = true }
-                }
-            })
-        }
+    NavHost(navController = navController, startDestination = "map") {
         composable("map") {
             MapScreen(
                 onGoToContacts = { navController.navigate("contacts") },
@@ -46,7 +39,8 @@ fun CentinelaNavigation() {
             ProfileScreen(
                 onBack = { navController.popBackStack() },
                 onLogout = {
-                    navController.navigate("login") {
+                    // Al cerrar sesión, reiniciamos el flujo del mapa
+                    navController.navigate("map") {
                         popUpTo("map") { inclusive = true }
                     }
                 }
