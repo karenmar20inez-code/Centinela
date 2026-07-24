@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Centinela</string>
+    <string name="mapbox_access_token">pk.eyJ1IjoiZGllZ29mYyIsImEiOiJjbXJ6YjVzZWMwamZmMzRxOHkwZ2g0ZHkyIn0.DgtwTz6UVifj0X7G91BodQ</string>
 </resources>

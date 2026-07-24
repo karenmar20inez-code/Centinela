@@ -2,7 +2,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.secrets.gradle.plugin)
 }
 
 android {
@@ -53,8 +52,13 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.material.icons.extended)
-    implementation(libs.play.services.maps)
-    implementation(libs.maps.compose)
+    
+    // Mapbox SDKs con soporte 16KB (NDK 27) para Android 15
+    implementation(libs.mapbox.maps)
+    implementation(libs.mapbox.compose)
+    implementation(libs.mapbox.search)
+    implementation(libs.mapbox.navigation)
+
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

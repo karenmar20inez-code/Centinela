@@ -13,7 +13,10 @@ import com.example.centinela.ui.theme.CentinelaTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Desactivamos el splash predeterminado si es que causa conflicto en el emulador
         enableEdgeToEdge()
+        
         setContent {
             CentinelaTheme {
                 CentinelaNavigation()
@@ -25,40 +28,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun CentinelaNavigation() {
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = "login") {
-        composable("login") {
-            LoginScreen(
-                onLoginSuccess = {
-                    navController.navigate("map") {
-                        popUpTo("login") { inclusive = true }
-                    }
-                },
-                onWebClick = {
-                    navController.navigate("webview")
-                }
-            )
-        }
+    NavHost(navController = navController, startDestination = "map") {
         composable("map") {
-            MapScreen(
-                onGoToContacts = { navController.navigate("contacts") },
-                onGoToProfile = { navController.navigate("profile") }
-            )
-        }
-        composable("webview") {
-            WebViewScreen(url = "https://www.google.com")
-        }
-        composable("contacts") {
-            ContactsScreen(onBack = { navController.popBackStack() })
-        }
-        composable("profile") {
-            ProfileScreen(
-                onBack = { navController.popBackStack() },
-                onLogout = {
-                    navController.navigate("login") {
-                        popUpTo("map") { inclusive = true }
-                    }
-                }
-            )
+            MapScreen()
         }
     }
 }
