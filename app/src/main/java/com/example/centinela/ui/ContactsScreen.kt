@@ -2,6 +2,7 @@ package com.example.centinela.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -10,15 +11,25 @@ import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.centinela.ui.theme.BoneWhite
+import com.example.centinela.ui.theme.MidnightBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactsScreen(onBack: () -> Unit) {
     Scaffold(
+        containerColor = BoneWhite,
         topBar = {
             TopAppBar(
-                title = { Text("Contactos de Emergencia") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MidnightBlue,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                ),
+                title = { Text("Contactos de Emergencia", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar")
@@ -47,9 +58,11 @@ fun ContactsScreen(onBack: () -> Unit) {
 
             Button(
                 onClick = onBack,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().height(55.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MidnightBlue)
             ) {
-                Text("GUARDAR CAMBIOS")
+                Text("GUARDAR CAMBIOS", fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -62,17 +75,20 @@ fun ContactInputCard(number: Int, defaultName: String, defaultPhone: String) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = "Contacto $number", style = MaterialTheme.typography.titleMedium)
+            Text(text = "Contacto $number", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MidnightBlue)
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = nombre,
                 onValueChange = { nombre = it },
                 label = { Text("Nombre") },
                 modifier = Modifier.fillMaxWidth(),
-                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) }
+                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                shape = RoundedCornerShape(12.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
@@ -80,7 +96,8 @@ fun ContactInputCard(number: Int, defaultName: String, defaultPhone: String) {
                 onValueChange = { telefono = it },
                 label = { Text("Teléfono") },
                 modifier = Modifier.fillMaxWidth(),
-                leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) }
+                leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
+                shape = RoundedCornerShape(12.dp)
             )
         }
     }
