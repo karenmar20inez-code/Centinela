@@ -1,5 +1,6 @@
-- `[x]` Conectar `MainActivity.dispararAlertaGlobal` con `MapScreen` para el SOS físico
-- `[x]` Mejorar mensajes de error en búsqueda de rutas (Origen vs Destino)
-- `[x]` Ajustar diseño de Sello C5 y Selector Pill para evitar solapamientos
-- `[x]` Refinar estilo de ruta (Azul oscuro + Borde blanco nítido)
-- `[x]` Verificar activación de SOS con botón de encendido
+- `[ ]` Implementar animación de pulsación infinita para el botón SOS
+- `[ ]` Aplicar efecto Glassmorphism (transparencia) al buscador y selector
+- `[ ]` Añadir marcadores visuales (inicio/fin) en la ruta usando `PointAnnotationManager`
+- `[ ]` Implementar entrada animada (slide-down) para el planificador
+- `[ ]` Refinar diseño de tarjetas con bordes extra redondeados (32.dp)
+- `[ ]` Sincronizar y verificar diseño Premium

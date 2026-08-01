@@ -14,12 +14,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import com.example.centinela.data.EmergencyPrefs
 import com.example.centinela.ui.theme.BoneWhite
 import com.example.centinela.ui.theme.MidnightBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactsScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    val prefs = remember { EmergencyPrefs(context) }
+
+    // Estados para los contactos
+    var name1 by remember { mutableStateOf(prefs.getContactName(1)) }
+    var phone1 by remember { mutableStateOf(prefs.getContactPhone(1)) }
+    
+    var name2 by remember { mutableStateOf(prefs.getContactName(2)) }
+    var phone2 by remember { mutableStateOf(prefs.getContactPhone(2)) }
+    
+    var name3 by remember { mutableStateOf(prefs.getContactName(3)) }
+    var phone3 by remember { mutableStateOf(prefs.getContactPhone(3)) }
+
     Scaffold(
         containerColor = BoneWhite,
         topBar = {
@@ -46,33 +61,43 @@ fun ContactsScreen(onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "Estos contactos recibirán una alerta y tu ubicación en tiempo real si activas el botón de pánico.",
-                style = MaterialTheme.typography.bodyMedium
+                text = "Estos contactos recibirán un SMS de auxilio y tu ubicación si presionas 3 veces el botón de encendido.",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
             )
 
-            ContactInputCard(1, "Mamá", "55 1234 5678")
-            ContactInputCard(2, "Papá", "55 8765 4321")
-            ContactInputCard(3, "Hermano/a", "55 0000 1111")
+            ContactInputCard(1, name1, phone1) { n, p -> name1 = n; phone1 = p }
+            ContactInputCard(2, name2, phone2) { n, p -> name2 = n; phone2 = p }
+            ContactInputCard(3, name3, phone3) { n, p -> name3 = n; phone3 = p }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
-                onClick = onBack,
+                onClick = {
+                    prefs.saveContact(1, name1, phone1)
+                    prefs.saveContact(2, name2, phone2)
+                    prefs.saveContact(3, name3, phone3)
+                    onBack()
+                },
                 modifier = Modifier.fillMaxWidth().height(55.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MidnightBlue)
             ) {
-                Text("GUARDAR CAMBIOS", fontWeight = FontWeight.Bold)
+                Text("GUARDAR CONTACTOS", fontWeight = FontWeight.Bold)
             }
+            
+            Text(
+                text = "Nota: El envío de SMS puede generar cargos según tu plan telefónico.",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray,
+                modifier = Modifier.padding(top = 8.dp)
+            )
         }
     }
 }
 
 @Composable
-fun ContactInputCard(number: Int, defaultName: String, defaultPhone: String) {
-    var nombre by remember { mutableStateOf(defaultName) }
-    var telefono by remember { mutableStateOf(defaultPhone) }
-
+fun ContactInputCard(number: Int, name: String, phone: String, onUpdate: (String, String) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -83,21 +108,23 @@ fun ContactInputCard(number: Int, defaultName: String, defaultPhone: String) {
             Text(text = "Contacto $number", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MidnightBlue)
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
-                value = nombre,
-                onValueChange = { nombre = it },
+                value = name,
+                onValueChange = { onUpdate(it, phone) },
                 label = { Text("Nombre") },
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true
             )
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
-                value = telefono,
-                onValueChange = { telefono = it },
+                value = phone,
+                onValueChange = { onUpdate(name, it) },
                 label = { Text("Teléfono") },
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true
             )
         }
     }

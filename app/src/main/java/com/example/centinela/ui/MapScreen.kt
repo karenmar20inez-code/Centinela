@@ -44,7 +44,12 @@ import com.mapbox.maps.Style
 import com.mapbox.maps.plugin.annotation.annotations
 import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationManager
 import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationOptions
+import com.mapbox.maps.plugin.annotation.generated.CircleAnnotationManager
+import com.mapbox.maps.plugin.annotation.generated.CircleAnnotationOptions
 import com.mapbox.maps.plugin.annotation.generated.createPolylineAnnotationManager
+import com.mapbox.maps.plugin.annotation.generated.createCircleAnnotationManager
+import com.mapbox.maps.plugin.animation.camera
+import androidx.compose.animation.core.*
 import com.mapbox.api.directions.v5.DirectionsCriteria
 import com.mapbox.api.directions.v5.MapboxDirections
 import com.mapbox.api.directions.v5.models.DirectionsResponse
@@ -54,6 +59,8 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import android.widget.Toast
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 // Enums locales para la simulación
 enum class EstadoSimulacion {
@@ -86,6 +93,7 @@ fun MapScreen(
     var estadoUsuario by rememberSaveable { mutableStateOf(EstadoSimulacion.REGISTRO_LOCAL) }
     var faseRegistro by rememberSaveable { mutableStateOf(FaseRegistro.SELECCION) }
     var esRegistro by rememberSaveable { mutableStateOf(true) }
+
     var nombreUsuario by rememberSaveable { mutableStateOf("") }
     var telefonoUsuario by rememberSaveable { mutableStateOf("") }
 
@@ -95,6 +103,8 @@ fun MapScreen(
     LaunchedEffect(MainActivity.dispararAlertaGlobal) {
         if (MainActivity.dispararAlertaGlobal) {
             mostrarAlerta = true
+            // Enviar SMS automáticos al activarse por hardware
+            MainActivity.enviarSmsGlobal(context)
             MainActivity.dispararAlertaGlobal = false // Consumir el evento
         }
     }
@@ -120,6 +130,29 @@ fun MapScreen(
 
     // Referencia al gestor de rutas
     var polylineAnnotationManager by remember { mutableStateOf<PolylineAnnotationManager?>(null) }
+    var circleAnnotationManager by remember { mutableStateOf<CircleAnnotationManager?>(null) }
+
+    // --- ANIMACIÓN PULSANTE SOS ---
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
+    )
+    val opacity by infiniteTransition.animateFloat(
+        initialValue = 0.7f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "opacity"
+    )
+
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
     val colorPrimario = MidnightBlue
@@ -176,7 +209,11 @@ fun MapScreen(
                     AndroidView(
                         factory = { 
                             mapView.apply {
-                                polylineAnnotationManager = annotations.createPolylineAnnotationManager()
+                                getMapboxMap().getStyle {
+                                    polylineAnnotationManager = annotations.createPolylineAnnotationManager()
+                                    circleAnnotationManager = annotations.createCircleAnnotationManager()
+                                    Log.d("MapboxDebug", "Managers de rutas y puntos listos.")
+                                }
                             }
                         },
                         modifier = Modifier.fillMaxSize()
@@ -198,63 +235,124 @@ fun MapScreen(
                         ) { Icon(Icons.Default.Search, null, tint = Color.White) }
                     }
 
-                    // --- PLANIFICADOR ---
-                    if (planificadorVisible) {
+                    // --- PLANIFICADOR (AHORA ARRIBA CON ANIMACIÓN Y GLASS) ---
+                    AnimatedVisibility(
+                        visible = planificadorVisible,
+                        enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+                        exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.TopCenter)
+                            .statusBarsPadding()
+                            .padding(top = 70.dp, start = 20.dp, end = 20.dp)
+                    ) {
                         Surface(
-                            modifier = Modifier.fillMaxWidth().align(Alignment.Center).padding(horizontal = 24.dp),
-                            shape = RoundedCornerShape(28.dp),
-                            shadowElevation = 15.dp
+                            shape = RoundedCornerShape(32.dp),
+                            shadowElevation = 15.dp,
+                            color = Color.White.copy(alpha = 0.92f) // Efecto cristal
                         ) {
                             Column(modifier = Modifier.padding(24.dp)) {
-                                Text("Planificador Seguro", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = colorPrimario)
+                                Text("Planificador Seguro", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = colorPrimario)
                                 Spacer(modifier = Modifier.height(16.dp))
-                                OutlinedTextField(value = origen, onValueChange = { origen = it }, placeholder = { Text("Origen") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+                                OutlinedTextField(
+                                    value = origen, 
+                                    onValueChange = { origen = it }, 
+                                    placeholder = { Text("Origen") }, 
+                                    modifier = Modifier.fillMaxWidth(), 
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White.copy(0.5f))
+                                )
                                 Spacer(modifier = Modifier.height(8.dp))
-                                OutlinedTextField(value = destino, onValueChange = { destino = it }, placeholder = { Text("Destino") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+                                OutlinedTextField(
+                                    value = destino, 
+                                    onValueChange = { destino = it }, 
+                                    placeholder = { Text("Destino") }, 
+                                    modifier = Modifier.fillMaxWidth(), 
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White.copy(0.5f))
+                                )
                                 Spacer(modifier = Modifier.height(20.dp))
                                 Button(
                                     onClick = {
                                         if (origen.isNotBlank() && destino.isNotBlank()) {
                                             analizandoRuta = true
                                             val mapCenter = mapView.getMapboxMap().cameraState.center
-                                            trazarRutaReal(mapboxToken, origen, destino, mapCenter, polylineAnnotationManager, { res ->
-                                                routesFound = res
-                                                analizandoRuta = false
-                                                rutaTrazada = true
-                                                planificadorVisible = false
-                                            }, { errorMsg ->
-                                                analizandoRuta = false
-                                                Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
-                                            })
+                                            scope.launch {
+                                                try {
+                                                    Log.d("MapboxDebug", "[Paso 1] Iniciando búsqueda...")
+                                                    val queryOri = if (!origen.lowercase().contains("cdmx")) "$origen, CDMX" else origen
+                                                    val queryDes = if (!destino.lowercase().contains("cdmx")) "$destino, CDMX" else destino
+
+                                                    val pOri = geocodeSuspend(mapboxToken, queryOri, mapCenter)
+                                                    if (pOri == null) {
+                                                        analizandoRuta = false
+                                                        Toast.makeText(context, "Origen no encontrado.", Toast.LENGTH_SHORT).show()
+                                                        return@launch
+                                                    }
+                                                    val pDes = geocodeSuspend(mapboxToken, queryDes, mapCenter)
+                                                    if (pDes == null) {
+                                                        analizandoRuta = false
+                                                        Toast.makeText(context, "Destino no encontrado.", Toast.LENGTH_SHORT).show()
+                                                        return@launch
+                                                    }
+
+                                                    val routes = fetchRoutesSuspend(mapboxToken, pOri, pDes)
+                                                    
+                                                    if (routes.isNotEmpty()) {
+                                                        routesFound = routes
+                                                        renderizarRutaPremium(polylineAnnotationManager, circleAnnotationManager, routes, "segura")
+                                                        
+                                                        val allPoints = routes[0].points
+                                                        if (allPoints.isNotEmpty()) {
+                                                            val camera = mapView.getMapboxMap().cameraForCoordinates(
+                                                                allPoints,
+                                                                EdgeInsets(380.0, 120.0, 380.0, 120.0),
+                                                                null, null
+                                                            )
+                                                            mapView.camera.easeTo(camera, com.mapbox.maps.plugin.animation.MapAnimationOptions.mapAnimationOptions { duration(1500) })
+                                                        }
+
+                                                        analizandoRuta = false
+                                                        rutaTrazada = true
+                                                        planificadorVisible = false
+                                                    } else {
+                                                        analizandoRuta = false
+                                                        Toast.makeText(context, "No se pudo calcular la ruta.", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                } catch (e: Exception) {
+                                                    analizandoRuta = false
+                                                    Toast.makeText(context, "Error de red.", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
                                         }
                                     },
-                                    modifier = Modifier.fillMaxWidth().height(55.dp),
-                                    shape = RoundedCornerShape(14.dp),
+                                    modifier = Modifier.fillMaxWidth().height(60.dp),
+                                    shape = RoundedCornerShape(18.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = colorPrimario)
-                                ) { Text("TRAZAR RUTA SEGURA") }
+                                ) { Text("TRAZAR RUTA SEGURA", fontWeight = FontWeight.ExtraBold) }
                             }
                         }
                     }
 
-                    // --- SELECTOR PILL (ABAJO) ---
+                    // --- SELECTOR PILL (ABAJO CON GLASS) ---
                     if (rutaTrazada && !planificadorVisible) {
                         Surface(
-                            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 160.dp).height(50.dp),
-                            shape = RoundedCornerShape(25.dp),
-                            color = Color.White,
-                            shadowElevation = 8.dp
+                            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 160.dp).height(55.dp),
+                            shape = RoundedCornerShape(30.dp),
+                            color = Color.White.copy(0.9f),
+                            shadowElevation = 10.dp
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 4.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 6.dp)) {
                                 PillOption("Segura", preferenciaActual == "segura") {
                                     preferenciaActual = "segura"
                                     if (routesFound.isNotEmpty()) {
-                                        renderizarRuta(polylineAnnotationManager, routesFound, "segura")
+                                        renderizarRutaPremium(polylineAnnotationManager, circleAnnotationManager, routesFound, "segura")
                                     }
                                 }
                                 PillOption("Rápida", preferenciaActual == "rapida") {
                                     preferenciaActual = "rapida"
                                     if (routesFound.isNotEmpty()) {
-                                        renderizarRuta(polylineAnnotationManager, routesFound, "rapida")
+                                        renderizarRutaPremium(polylineAnnotationManager, circleAnnotationManager, routesFound, "rapida")
                                     }
                                 }
                             }
@@ -276,15 +374,22 @@ fun MapScreen(
                         }
                     }
 
-                    // --- BOTÓN SOS ---
+                    // --- BOTÓN SOS CON ANIMACIÓN DE LATIDO ---
                     Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 40.dp).zIndex(10f)) {
-                        Button(
-                            onClick = { mostrarAlerta = true },
-                            modifier = Modifier.size(100.dp),
+                        Surface(
+                            modifier = Modifier.size(100.dp * scale),
                             shape = CircleShape,
-                            colors = ButtonDefaults.buttonColors(containerColor = colorAlerta),
-                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
-                        ) { Text("SOS", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp) }
+                            color = colorAlerta.copy(alpha = opacity),
+                            shadowElevation = 12.dp,
+                            border = androidx.compose.foundation.BorderStroke(4.dp * scale, Color.White.copy(0.4f))
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize().clickable { mostrarAlerta = true },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("SOS", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color.White)
+                            }
+                        }
                     }
 
                     if (mostrarAlerta) {
@@ -322,93 +427,154 @@ fun PillOption(label: String, isSelected: Boolean, onClick: () -> Unit) {
     }
 }
 
-fun trazarRutaReal(
-    token: String,
-    ori: String,
-    des: String,
-    proxy: Point,
-    manager: PolylineAnnotationManager?,
-    onSuccess: (List<RouteInfo>) -> Unit,
-    onError: (String) -> Unit
-) {
-    Log.d("MapboxDebug", "Buscando origen: $ori")
-    geocodeProxy(token, ori, proxy) { pOri ->
-        if (pOri == null) { onError("No se encontró el origen: $ori"); return@geocodeProxy }
-        
-        Log.d("MapboxDebug", "Buscando destino: $des")
-        geocodeProxy(token, des, proxy) { pDes ->
-            if (pDes == null) { onError("No se encontró el destino: $des"); return@geocodeProxy }
-            
-            Log.d("MapboxDebug", "Calculando trayecto real por calles...")
-            val options = com.mapbox.api.directions.v5.models.RouteOptions.builder()
-                .baseUrl("https://api.mapbox.com")
-                .user("mapbox")
-                .profile(DirectionsCriteria.PROFILE_DRIVING_TRAFFIC)
-                .coordinatesList(listOf(pOri, pDes))
-                .overview(DirectionsCriteria.OVERVIEW_FULL)
-                .geometries(DirectionsCriteria.GEOMETRY_POLYLINE6)
-                .alternatives(true)
-                .build()
+// --- FUNCIONES DE APOYO (REFACTORIZADAS A COROUTINES) ---
 
-            MapboxDirections.builder().accessToken(token).routeOptions(options).build().enqueueCall(object : Callback<DirectionsResponse> {
-                override fun onResponse(call: Call<DirectionsResponse>, response: Response<DirectionsResponse>) {
-                    if (!response.isSuccessful) {
-                        Log.e("MapboxDebug", "Error en API de rutas: ${response.code()}")
-                        onError("Error al conectar con el servicio de mapas."); return
-                    }
-                    val routes = response.body()?.routes() ?: emptyList()
-                    val result = routes.mapIndexed { i, r ->
-                        val pts = try {
-                            com.mapbox.geojson.LineString.fromPolyline(r.geometry()!!, 6).coordinates()
-                        } catch (e: Exception) {
-                            com.mapbox.geojson.LineString.fromPolyline(r.geometry()!!, 5).coordinates()
+suspend fun geocodeSuspend(token: String, query: String, proxy: Point): Point? = suspendCancellableCoroutine { continuation ->
+    Log.d("MapboxDebug", "Buscando coordenadas para: $query")
+    MapboxGeocoding.builder()
+        .accessToken(token)
+        .query(query)
+        .country("MX")
+        .proximity(proxy)
+        .autocomplete(true)
+        .limit(1)
+        .build()
+        .enqueueCall(object : Callback<GeocodingResponse> {
+            override fun onResponse(call: Call<GeocodingResponse>, response: Response<GeocodingResponse>) {
+                val f = response.body()?.features()
+                val point = if (f.isNullOrEmpty()) null else f[0].center()
+                Log.d("MapboxDebug", "Resultado geocodificación: $point")
+                continuation.resume(point)
+            }
+            override fun onFailure(call: Call<GeocodingResponse>, t: Throwable) {
+                Log.e("MapboxDebug", "Error geocodificación: ${t.message}")
+                continuation.resume(null)
+            }
+        })
+}
+
+suspend fun fetchRoutesSuspend(token: String, start: Point, end: Point): List<RouteInfo> = suspendCancellableCoroutine { continuation ->
+    Log.d("MapboxDebug", "[Paso 4] Solicitando ruta entre $start y $end")
+    val options = com.mapbox.api.directions.v5.models.RouteOptions.builder()
+        .baseUrl("https://api.mapbox.com")
+        .user("mapbox")
+        .profile(DirectionsCriteria.PROFILE_DRIVING) // Cambiado a DRIVING para máxima compatibilidad
+        .coordinatesList(listOf(start, end))
+        .overview(DirectionsCriteria.OVERVIEW_FULL)
+        .geometries(DirectionsCriteria.GEOMETRY_POLYLINE6)
+        .alternatives(true)
+        .build()
+
+    MapboxDirections.builder().accessToken(token).routeOptions(options).build().enqueueCall(object : Callback<DirectionsResponse> {
+        override fun onResponse(call: Call<DirectionsResponse>, response: Response<DirectionsResponse>) {
+            if (!response.isSuccessful) {
+                val errorMsg = response.errorBody()?.string()
+                Log.e("MapboxDebug", "Error API (Code ${response.code()}): $errorMsg")
+                continuation.resume(emptyList())
+                return
+            }
+            val routes = response.body()?.routes() ?: emptyList()
+            Log.d("MapboxDebug", "Rutas obtenidas: ${routes.size}")
+            
+            val result = routes.mapIndexed { i, r ->
+                val geometry = r.geometry()
+                val pts = if (geometry != null) {
+                    try {
+                        com.mapbox.geojson.LineString.fromPolyline(geometry, 6).coordinates()
+                    } catch (e: Exception) {
+                        Log.w("MapboxDebug", "Fallo decodificación P6, intentando P5...")
+                        try {
+                            com.mapbox.geojson.LineString.fromPolyline(geometry, 5).coordinates()
+                        } catch (errorP5: Exception) {
+                            Log.e("MapboxDebug", "Fallo total de decodificación: ${errorP5.message}")
+                            emptyList<Point>()
                         }
-                        RouteInfo(pts, if (i == 0) "segura" else "rapida")
                     }
-                    if (result.isNotEmpty()) {
-                        renderizarRuta(manager, result, "segura")
-                        onSuccess(result)
-                    } else {
-                        onError("No hay calles disponibles entre estos puntos.")
-                    }
-                }
-                override fun onFailure(call: Call<DirectionsResponse>, t: Throwable) { 
-                    onError("Fallo de conexión.") 
-                }
-            })
+                } else emptyList()
+                RouteInfo(pts, if (i == 0) "segura" else "rapida")
+            }
+            continuation.resume(result)
         }
+        override fun onFailure(call: Call<DirectionsResponse>, t: Throwable) {
+            Log.e("MapboxDebug", "Fallo de conexión crítico: ${t.message}")
+            continuation.resume(emptyList())
+        }
+    })
+}
+
+private fun renderizarRutaPremium(
+    polyManager: PolylineAnnotationManager?, 
+    circleManager: CircleAnnotationManager?,
+    routes: List<RouteInfo>, 
+    pref: String
+) {
+    if (polyManager == null || circleManager == null) return
+    
+    try {
+        polyManager.deleteAll()
+        circleManager.deleteAll()
+        
+        val r = if (pref == "rapida" && routes.size > 1) routes[1] else routes[0]
+        if (r.points.isEmpty()) return
+
+        // 1. DIBUJAR RUTA (CASING + CORE)
+        polyManager.create(PolylineAnnotationOptions().withPoints(r.points).withLineColor("#FFFFFF").withLineWidth(14.0))
+        polyManager.create(PolylineAnnotationOptions().withPoints(r.points).withLineColor("#0047AB").withLineWidth(8.0))
+
+        // 2. AÑADIR MARCADORES DE INICIO Y FIN (CIRCULOS)
+        val startPoint = r.points.first()
+        val endPoint = r.points.last()
+
+        // Punto de Inicio (Azul con borde blanco)
+        circleManager.create(CircleAnnotationOptions().withPoint(startPoint).withCircleRadius(10.0).withCircleColor("#FFFFFF").withCircleStrokeWidth(2.0).withCircleStrokeColor("#0047AB"))
+        circleManager.create(CircleAnnotationOptions().withPoint(startPoint).withCircleRadius(6.0).withCircleColor("#0047AB"))
+
+        // Punto de Destino (Rojo con borde blanco)
+        circleManager.create(CircleAnnotationOptions().withPoint(endPoint).withCircleRadius(12.0).withCircleColor("#FFFFFF").withCircleStrokeWidth(3.0).withCircleStrokeColor("#FF0000"))
+        circleManager.create(CircleAnnotationOptions().withPoint(endPoint).withCircleRadius(7.0).withCircleColor("#FF0000"))
+        
+        Log.d("MapboxDebug", "Ruta y círculos renderizados.")
+    } catch (e: Exception) {
+        Log.e("MapboxDebug", "Error renderizado: ${e.message}")
     }
 }
 
 private fun renderizarRuta(manager: PolylineAnnotationManager?, routes: List<RouteInfo>, pref: String) {
-    manager?.deleteAll()
-    val r = if (pref == "rapida" && routes.size > 1) routes[1] else routes[0]
-    
-    // 1. Borde Blanco (Casing) para dar profundidad y visibilidad
-    manager?.create(
-        PolylineAnnotationOptions()
-            .withPoints(r.points)
-            .withLineColor("#ffffff")
-            .withLineWidth(13.0) // Borde grueso
-    )
-
-    // 2. Ruta Oscura Sólida (Diseño Imagen)
-    manager?.create(
-        PolylineAnnotationOptions()
-            .withPoints(r.points)
-            .withLineColor("#1c2e4a") // MidnightBlue muy sólido
-            .withLineWidth(7.5)
-    )
-}
-
-private fun geocodeProxy(token: String, q: String, proxy: Point, cb: (Point?) -> Unit) {
-    MapboxGeocoding.builder().accessToken(token).query(q).country("MX").proximity(proxy).limit(1).build().enqueueCall(object : Callback<GeocodingResponse> {
-        override fun onResponse(call: Call<GeocodingResponse>, response: Response<GeocodingResponse>) {
-            val f = response.body()?.features()
-            cb(if (f.isNullOrEmpty()) null else f[0].center())
+    if (manager == null) {
+        Log.e("MapboxDebug", "Error: AnnotationManager es NULL")
+        return
+    }
+    try {
+        manager.deleteAll()
+        val r = if (pref == "rapida" && routes.size > 1) routes[1] else routes[0]
+        
+        if (r.points.isEmpty()) {
+            Log.e("MapboxDebug", "Error: La ruta seleccionada no tiene puntos")
+            return
         }
-        override fun onFailure(call: Call<GeocodingResponse>, t: Throwable) { cb(null) }
-    })
+
+        Log.d("MapboxDebug", "Dibujando ruta con ${r.points.size} puntos. Primer punto: ${r.points[0]}")
+
+        // 1. Borde Blanco (Casing)
+        val casingOptions = PolylineAnnotationOptions()
+            .withPoints(r.points)
+            .withLineColor("#FFFFFF")
+            .withLineWidth(12.0)
+            .withLineOpacity(0.9)
+        manager.create(casingOptions)
+
+        // 2. Ruta Azul Intenso (Diseño Profesional)
+        val routeOptions = PolylineAnnotationOptions()
+            .withPoints(r.points)
+            .withLineColor("#0047AB") // Cobalt Blue (Más visible que Midnight)
+            .withLineWidth(6.5)
+            .withLineOpacity(1.0)
+        manager.create(routeOptions)
+        
+        Log.d("MapboxDebug", "Ruta creada exitosamente en el manager")
+    } catch (e: Exception) {
+        Log.e("MapboxDebug", "Error fatal al renderizar ruta: ${e.message}")
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
