@@ -1,0 +1,7 @@
+- `[ ]` Implementar el componente `PillSelector` en `MapScreen.kt`
+- `[ ]` Reposicionar botones de Menú (sup-izq), Búsqueda (sup-der) y Sello C5 (inf-izq)
+- `[ ]` Actualizar `trazarRutaDinamica` para usar rutas reales por calles (precisión 6)
+- `[ ]` Aplicar estilo MidnightBlue con borde blanco a las rutas
+- `[ ]` Desactivar el zoom automático al trazar la ruta
+- `[ ]` Ocultar el planificador tras presionar "Trazar"
+- `[ ]` Sincronizar y verificar compilación

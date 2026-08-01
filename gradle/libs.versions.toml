@@ -12,6 +12,7 @@ composeBom = "2026.02.01"
 navigationCompose = "2.9.8"
 materialIconsExtended = "1.7.0"
 mapbox = "10.15.0"
+mapboxServices = "6.12.0"
 secretsGradlePlugin = "2.0.1"
 
 [libraries]
@@ -33,6 +34,8 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIconsExtended" }
 mapbox-android = { group = "com.mapbox.maps", name = "android", version.ref = "mapbox" }
+mapbox-services = { group = "com.mapbox.mapboxsdk", name = "mapbox-sdk-services", version.ref = "mapboxServices" }
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
