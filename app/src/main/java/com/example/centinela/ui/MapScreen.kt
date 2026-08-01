@@ -90,6 +90,15 @@ fun MapScreen(
     var telefonoUsuario by rememberSaveable { mutableStateOf("") }
 
     var mostrarAlerta by rememberSaveable { mutableStateOf(autoTriggerSos) }
+    
+    // Conectar con el botón de hardware de MainActivity
+    LaunchedEffect(MainActivity.dispararAlertaGlobal) {
+        if (MainActivity.dispararAlertaGlobal) {
+            mostrarAlerta = true
+            MainActivity.dispararAlertaGlobal = false // Consumir el evento
+        }
+    }
+
     var origen by rememberSaveable { mutableStateOf("") }
     var destino by rememberSaveable { mutableStateOf("") }
     var analizandoRuta by rememberSaveable { mutableStateOf(false) }
@@ -213,9 +222,9 @@ fun MapScreen(
                                                 analizandoRuta = false
                                                 rutaTrazada = true
                                                 planificadorVisible = false
-                                            }, {
+                                            }, { errorMsg ->
                                                 analizandoRuta = false
-                                                Toast.makeText(context, "No se encontró ruta.", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
                                             })
                                         }
                                     },
@@ -230,7 +239,7 @@ fun MapScreen(
                     // --- SELECTOR PILL (ABAJO) ---
                     if (rutaTrazada && !planificadorVisible) {
                         Surface(
-                            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 150.dp).height(50.dp),
+                            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 160.dp).height(50.dp),
                             shape = RoundedCornerShape(25.dp),
                             color = Color.White,
                             shadowElevation = 8.dp
@@ -238,11 +247,15 @@ fun MapScreen(
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 4.dp)) {
                                 PillOption("Segura", preferenciaActual == "segura") {
                                     preferenciaActual = "segura"
-                                    renderizarRuta(polylineAnnotationManager, routesFound, "segura")
+                                    if (routesFound.isNotEmpty()) {
+                                        renderizarRuta(polylineAnnotationManager, routesFound, "segura")
+                                    }
                                 }
                                 PillOption("Rápida", preferenciaActual == "rapida") {
                                     preferenciaActual = "rapida"
-                                    renderizarRuta(polylineAnnotationManager, routesFound, "rapida")
+                                    if (routesFound.isNotEmpty()) {
+                                        renderizarRuta(polylineAnnotationManager, routesFound, "rapida")
+                                    }
                                 }
                             }
                         }
@@ -251,7 +264,7 @@ fun MapScreen(
                     // --- SELLO C5 ---
                     if (rutaTrazada) {
                         Surface(
-                            modifier = Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 120.dp),
+                            modifier = Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 100.dp),
                             color = EmeraldGreen,
                             shape = RoundedCornerShape(12.dp)
                         ) {
@@ -316,13 +329,17 @@ fun trazarRutaReal(
     proxy: Point,
     manager: PolylineAnnotationManager?,
     onSuccess: (List<RouteInfo>) -> Unit,
-    onError: () -> Unit
+    onError: (String) -> Unit
 ) {
+    Log.d("MapboxDebug", "Buscando origen: $ori")
     geocodeProxy(token, ori, proxy) { pOri ->
-        if (pOri == null) { onError(); return@geocodeProxy }
+        if (pOri == null) { onError("No se encontró el origen: $ori"); return@geocodeProxy }
+        
+        Log.d("MapboxDebug", "Buscando destino: $des")
         geocodeProxy(token, des, proxy) { pDes ->
-            if (pDes == null) { onError(); return@geocodeProxy }
+            if (pDes == null) { onError("No se encontró el destino: $des"); return@geocodeProxy }
             
+            Log.d("MapboxDebug", "Calculando trayecto real por calles...")
             val options = com.mapbox.api.directions.v5.models.RouteOptions.builder()
                 .baseUrl("https://api.mapbox.com")
                 .user("mapbox")
@@ -335,17 +352,29 @@ fun trazarRutaReal(
 
             MapboxDirections.builder().accessToken(token).routeOptions(options).build().enqueueCall(object : Callback<DirectionsResponse> {
                 override fun onResponse(call: Call<DirectionsResponse>, response: Response<DirectionsResponse>) {
+                    if (!response.isSuccessful) {
+                        Log.e("MapboxDebug", "Error en API de rutas: ${response.code()}")
+                        onError("Error al conectar con el servicio de mapas."); return
+                    }
                     val routes = response.body()?.routes() ?: emptyList()
                     val result = routes.mapIndexed { i, r ->
-                        val pts = com.mapbox.geojson.LineString.fromPolyline(r.geometry()!!, 6).coordinates()
+                        val pts = try {
+                            com.mapbox.geojson.LineString.fromPolyline(r.geometry()!!, 6).coordinates()
+                        } catch (e: Exception) {
+                            com.mapbox.geojson.LineString.fromPolyline(r.geometry()!!, 5).coordinates()
+                        }
                         RouteInfo(pts, if (i == 0) "segura" else "rapida")
                     }
                     if (result.isNotEmpty()) {
                         renderizarRuta(manager, result, "segura")
                         onSuccess(result)
-                    } else onError()
+                    } else {
+                        onError("No hay calles disponibles entre estos puntos.")
+                    }
                 }
-                override fun onFailure(call: Call<DirectionsResponse>, t: Throwable) { onError() }
+                override fun onFailure(call: Call<DirectionsResponse>, t: Throwable) { 
+                    onError("Fallo de conexión.") 
+                }
             })
         }
     }
@@ -354,8 +383,22 @@ fun trazarRutaReal(
 private fun renderizarRuta(manager: PolylineAnnotationManager?, routes: List<RouteInfo>, pref: String) {
     manager?.deleteAll()
     val r = if (pref == "rapida" && routes.size > 1) routes[1] else routes[0]
-    manager?.create(PolylineAnnotationOptions().withPoints(r.points).withLineColor("#ffffff").withLineWidth(12.0))
-    manager?.create(PolylineAnnotationOptions().withPoints(r.points).withLineColor("#1c2e4a").withLineWidth(7.0))
+    
+    // 1. Borde Blanco (Casing) para dar profundidad y visibilidad
+    manager?.create(
+        PolylineAnnotationOptions()
+            .withPoints(r.points)
+            .withLineColor("#ffffff")
+            .withLineWidth(13.0) // Borde grueso
+    )
+
+    // 2. Ruta Oscura Sólida (Diseño Imagen)
+    manager?.create(
+        PolylineAnnotationOptions()
+            .withPoints(r.points)
+            .withLineColor("#1c2e4a") // MidnightBlue muy sólido
+            .withLineWidth(7.5)
+    )
 }
 
 private fun geocodeProxy(token: String, q: String, proxy: Point, cb: (Point?) -> Unit) {

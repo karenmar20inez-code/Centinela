@@ -1,30 +1,29 @@
-# Plan de Implementación - Rutas Dinámicas Minimalistas (Sin Zoom)
+# Plan de Implementación - Corrección de SOS y Mejora de Rutas
 
-El usuario solicita un diseño específico basado en una imagen de referencia: una interfaz limpia con un selector de rutas tipo "pill", una ruta sólida oscura que sigue las calles y, fundamentalmente, **evitar el zoom automático** que aleja la cámara al trazar la ruta.
+Se abordarán los problemas reportados: la falta de activación del SOS desde el botón físico y el error al encontrar rutas. Además, se pulirá el diseño para que coincida exactamente con la imagen de referencia.
 
 ## Proposed Changes
 
-### Interfaz de Usuario (UX/UI)
+### Lógica de Emergencia
 
 #### [MODIFICAR] [MapScreen.kt](file:///C:/Users/lis_0/StudioProjects/Centinela/app/src/main/java/com/example/centinela/ui/MapScreen.kt)
-*   **Selector de Ruta**: Implementar la "pastilla" (pill) blanca en la parte inferior con las opciones "Segura" y "Rápida".
-*   **Ocultar Planificador**: Tras presionar "Trazar", el planificador se ocultará para mostrar el mapa a pantalla completa.
-*   **Sello C5**: Reposicionar el sello de seguridad en la esquina inferior izquierda.
-*   **Botones Flotantes**: Mantener Menú (arriba-izq) y Búsqueda (arriba-der).
+*   **Sincronización SOS**: Añadir un `LaunchedEffect` que observe el estado `dispararAlertaGlobal` de `MainActivity`. Esto permitirá que la alerta aparezca inmediatamente cuando se detecten los 3 toques del botón de encendido.
 
-### Lógica de Mapas y Rutas
+### Lógica de Navegación
 
 #### [MODIFICAR] [MapScreen.kt](file:///C:/Users/lis_0/StudioProjects/Centinela/app/src/main/java/com/example/centinela/ui/MapScreen.kt)
-*   **Trazado Dinámico (Fijar Calles)**: Usar Mapbox Directions con precisión 6 para asegurar que la ruta serpentea por las calles.
-*   **Estilo Visual**: Línea de color azul medianoche sólido con un grosor de 8.0 y un borde blanco (casing) para que resalte.
-*   **Cámara Estática**: **Eliminar** cualquier comando que mueva o aleje la cámara tras el trazado. La ruta aparecerá en el mapa respetando el zoom actual del usuario.
-*   **Depuración Robusta**: Añadir logs en cada etapa (Geocoding -> Directions -> Render) para asegurar que la ruta se procesa correctamente.
+*   **Robustez en Búsqueda**: Mejorar los logs y mensajes de error en `trazarRutaReal`. Si un lugar no se encuentra, el aviso indicará cuál falló (Origen o Destino).
+*   **Geocodificación**: Asegurar que la búsqueda priorice resultados locales usando las coordenadas actuales del mapa.
+
+### Interfaz de Usuario (UI)
+
+#### [MODIFICAR] [MapScreen.kt](file:///C:/Users/lis_0/StudioProjects/Centinela/app/src/main/java/com/example/centinela/ui/MapScreen.kt)
+*   **Ajuste de Capas**: Asegurar que el selector "Pill" y el sello "C5" no se tapen entre sí y coincidan con las alturas de la imagen.
+*   **Estilo de Ruta**: Refinar el trazado para que sea de un azul muy oscuro con un borde blanco nítido.
 
 ## Verification Plan
 
 ### Manual Verification
-1.  Ingresar origen y destino.
-2.  Presionar "Trazar".
-3.  Verificar que el planificador desaparece.
-4.  Confirmar que la ruta aparece como una línea oscura por las calles **sin que el mapa cambie de zoom**.
-5.  Alternar entre "Segura" y "Rápida" en el selector inferior y ver cómo cambia el trazado instantáneamente.
+1.  **SOS**: Bloquear pantalla y presionar 3 veces el botón de encendido. Confirmar que la app muestra la alerta.
+2.  **Rutas**: Buscar "Zócalo" y "Bellas Artes". Confirmar que la ruta aparece siguiendo las calles sin alejar el zoom.
+3.  **Selector**: Alternar entre "Segura" y "Rápida" y confirmar que el cambio es visual y sin movimiento de cámara.

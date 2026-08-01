@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
     
     // Estado global para disparar la alerta desde hardware
     companion object {
-        var dispararAlertaGlobal by mutableStateOf(false)
+        var dispararAlertaGlobal by mutableStateOf(value = false)
     }
 
     private var screenOffCount = 0

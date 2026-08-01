@@ -1,7 +1,5 @@
-- `[ ]` Implementar el componente `PillSelector` en `MapScreen.kt`
-- `[ ]` Reposicionar botones de Menú (sup-izq), Búsqueda (sup-der) y Sello C5 (inf-izq)
-- `[ ]` Actualizar `trazarRutaDinamica` para usar rutas reales por calles (precisión 6)
-- `[ ]` Aplicar estilo MidnightBlue con borde blanco a las rutas
-- `[ ]` Desactivar el zoom automático al trazar la ruta
-- `[ ]` Ocultar el planificador tras presionar "Trazar"
-- `[ ]` Sincronizar y verificar compilación
+- `[x]` Conectar `MainActivity.dispararAlertaGlobal` con `MapScreen` para el SOS físico
+- `[x]` Mejorar mensajes de error en búsqueda de rutas (Origen vs Destino)
+- `[x]` Ajustar diseño de Sello C5 y Selector Pill para evitar solapamientos
+- `[x]` Refinar estilo de ruta (Azul oscuro + Borde blanco nítido)
+- `[x]` Verificar activación de SOS con botón de encendido
