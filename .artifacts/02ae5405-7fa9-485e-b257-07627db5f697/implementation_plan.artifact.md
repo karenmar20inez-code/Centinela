@@ -1,29 +1,29 @@
-# Plan de Mejora Estética - Centinela Premium
+# Plan de Estabilización SOS - Prevención de Cierre de App
 
-El objetivo es transformar la interfaz actual en una experiencia más moderna, fluida y visualmente atractiva, manteniendo el enfoque en la seguridad y el minimalismo solicitado.
+El análisis de los registros muestra que el SOS se activa correctamente (`DISPARANDO EMERGENCIA`), pero el sistema Android está bloqueando el relanzamiento de la actividad principal (`Background activity launch blocked`) o recreándola, lo que da la sensación de que la app se cierra o te saca.
 
 ## Proposed Changes
 
-### Interfaz del Mapa (UX/UI)
+### 1. Configuración de Manifest (Persistencia)
+
+#### [MODIFICAR] [AndroidManifest.xml](file:///C:/Users/lis_0/StudioProjects/Centinela/app/src/main/AndroidManifest.xml)
+*   Cambiar `launchMode` de `MainActivity` a `singleInstance`. Esto asegura que Android no intente crear una copia nueva de la app al activar el SOS, sino que traiga la sesión actual al frente, manteniendo tu ruta y estado.
+
+### 2. Optimización de SosService (Activación Silenciosa)
+
+#### [MODIFICAR] [SosService.kt](file:///C:/Users/lis_0/StudioProjects/Centinela/app/src/main/java/com/example/centinela/ui/SosService.kt)
+*   **Inteligencia de Lanzamiento**: Antes de llamar a `startActivity`, verificar si la app ya está visible. Si lo está, omitir el lanzamiento para evitar el parpadeo.
+*   **Flags de Intento**: Refinar los flags para que solo traigan la app al frente (`FLAG_ACTIVITY_REORDER_TO_FRONT`) en lugar de reiniciarla.
+
+### 3. Mejora de Interfaz (MapScreen)
 
 #### [MODIFICAR] [MapScreen.kt](file:///C:/Users/lis_0/StudioProjects/Centinela/app/src/main/java/com/example/centinela/ui/MapScreen.kt)
-*   **Animación SOS**: Implementar un efecto de pulsación infinita en el botón rojo para darle dinamismo.
-*   **Glassmorphism**: Ajustar el fondo del Planificador y el Selector de rutas para que sean semi-transparentes (`alpha 0.9`) con bordes más redondeados.
-*   **Transiciones Animadas**: Usar `AnimatedVisibility` para que el buscador aparezca con un deslizamiento suave desde arriba.
-*   **Estilo de Mapa Premium**: Cambiar a un estilo de mapa más limpio que mejore el contraste con la ruta azul.
-
-### Identidad Visual
-
-#### [MODIFICAR] [MapScreen.kt](file:///C:/Users/lis_0/StudioProjects/Centinela/app/src/main/java/com/example/centinela/ui/MapScreen.kt)
-*   **Iconos de Ruta**: Añadir marcadores visuales (puntos brillantes o iconos) en los extremos de la ruta para que el inicio y el fin sean inequívocos.
-
-#### [MODIFICAR] [Theme.kt](file:///C:/Users/lis_0/StudioProjects/Centinela/app/src/main/java/com/example/centinela/ui/theme/Theme.kt) / [Color.kt](file:///C:/Users/lis_0/StudioProjects/Centinela/app/src/main/java/com/example/centinela/ui/theme/Color.kt)
-*   Definir un gradiente para los botones de acción principal (Trazar Ruta) para darles un aspecto más moderno.
+*   Asegurar que el diálogo de alerta se muestre de forma no intrusiva sobre la ruta activa, permitiendo que el usuario siga viendo el mapa si lo desea.
 
 ## Verification Plan
 
 ### Manual Verification
-1.  Verificar que el botón SOS tiene un efecto de "latido" visual.
-2.  Confirmar que al presionar la lupa, el buscador baja suavemente desde arriba.
-3.  Comprobar que la ruta azul ahora tiene marcadores claros en sus puntas.
-4.  Validar que los cuadros de texto se ven modernos con el efecto de transparencia.
+1.  Iniciar una ruta en el mapa.
+2.  Bloquear la pantalla (`Ctrl + P`).
+3.  Presionar 3 veces Volumen Arriba.
+4.  **Resultado esperado**: La pantalla se enciende, la app aparece **exactamente donde estaba** (con la ruta marcada) y muestra el diálogo de SOS por encima, sin cerrarse ni reiniciarse.

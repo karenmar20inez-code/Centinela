@@ -53,9 +53,10 @@ class SosService : Service() {
         // Enviar SMS
         context?.let { MainActivity.enviarSmsGlobal(it) }
         
-        // LANZAR NOTIFICACIÓN DE EMERGENCIA (FULL SCREEN INTENT)
-        // Esto obliga a Android a abrir la app aunque esté bloqueado
-        lanzarNotificacionEmergencia(context)
+        // Si la app NO está en primer plano, lanzamos la notificación Full Screen
+        if (!MainActivity.estaEnPrimerPlano) {
+            lanzarNotificacionEmergencia(context)
+        }
     }
 
     private fun lanzarNotificacionEmergencia(context: Context?) {
@@ -78,7 +79,7 @@ class SosService : Service() {
         }
 
         val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
-        launchIntent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        launchIntent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
         
         val pendingIntent = PendingIntent.getActivity(
             context, 

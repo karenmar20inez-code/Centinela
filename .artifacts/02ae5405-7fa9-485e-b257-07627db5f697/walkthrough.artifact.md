@@ -1,33 +1,26 @@
-# Walkthrough - Centinela Premium Redesign
+# Walkthrough - Estabilización Crítica del Sistema SOS
 
-He elevado la calidad visual de Centinela para que se sienta como una aplicación moderna, fluida y "Premium". Los cambios se centran en micro-interacciones y un diseño de interfaz más sofisticado.
+He implementado una "coraza" técnica para asegurar que la aplicación Centinela no se cierre ni se reinicie cuando activas la emergencia. Ahora, el sistema es mucho más inteligente al manejar los eventos de hardware.
 
-## Mejoras Visuales Implementadas
+## Cambios Realizados
 
-### 1. Botón SOS con "Latido"
-*   **Animación Infinita**: El botón rojo de SOS ahora tiene un efecto de pulsación constante (escala y opacidad).
-*   **Sensación de Seguridad**: Este efecto visual transmite que la aplicación está monitoreando activamente tu seguridad en tiempo real.
+### 1. Sesión Única (Single Instance)
+*   He configurado la aplicación para que **siempre exista una sola sesión activa**.
+*   **¿Qué significa?**: Cuando presionas los botones de emergencia, Android ya no intentará abrir la app "desde cero" (lo cual causaba que se cerrara o se perdiera la ruta). Ahora, simplemente traerá tu mapa actual al frente, manteniendo tu ruta marcada intacta.
 
-### 2. Efecto Glassmorphism (Cristal)
-*   **Transparencia Sofisticada**: El buscador de rutas y el selector inferior ahora son semi-transparentes.
-*   **Profundidad**: Esto permite que el mapa fluya por debajo de la interfaz, dando una sensación de mayor amplitud y modernidad.
+### 2. Lanzamiento Inteligente y Seguro
+*   **Flags de Reordenamiento**: He actualizado las órdenes internas para que el SOS use el flag `REORDER_TO_FRONT`. Esto le dice al sistema: "No crees nada nuevo, solo pon lo que ya tengo abierto en primer plano".
+*   **Detección de Visibilidad**: Si ya estás viendo el mapa, la app simplemente mostrará el aviso de alerta. Si el teléfono está bloqueado, usará el protocolo de alta prioridad para despertar la pantalla sin interrumpir el proceso.
 
-### 3. Entrada de Planificador Animada
-*   **Slide & Fade**: Cuando tocas la lupa, el planificador no aparece de golpe; ahora se desliza suavemente desde la parte superior de la pantalla.
+### 3. Sincronización de Estado Total
+*   Se añadió un refuerzo en `onNewIntent` para asegurar que el diálogo de SOS aparezca sí o sí cada vez que el servicio de hardware mande la señal, eliminando fallos visuales.
 
-### 4. Marcadores de Ruta Estilizados
-*   **Puntos de Referencia**: He añadido círculos visuales al inicio y fin de la ruta.
-    *   **Inicio**: Un círculo azul con borde blanco.
-    *   **Destino**: Un círculo rojo con borde blanco (indicando el objetivo seguro).
+## Cómo verificar la estabilidad
 
-### 5. Bordes Extra Redondeados
-*   **Estilo Moderno**: He aumentado el redondeo de todas las tarjetas y paneles a **32.dp**, siguiendo las tendencias de diseño más actuales.
-
-## Cómo disfrutar del nuevo diseño
-
-1.  **Observa el SOS**: Mira el botón rojo en la parte inferior; verás cómo "respira" suavemente.
-2.  **Trazar Ruta**: Busca un destino. Notarás la transparencia en el cuadro blanco y los nuevos círculos brillantes donde empieza y termina tu camino azul cobalto.
-3.  **Animación de Lupa**: Oculta y muestra el buscador tocando la lupa arriba a la derecha para ver el efecto de deslizamiento.
+1.  **Inicia una ruta**: Busca cualquier destino y deja que se dibuje en el mapa.
+2.  **Prueba el SOS**: Bloquea la pantalla o sal a la pantalla de inicio del celular.
+3.  **Activa el botón**: Presiona 3 veces Volumen Arriba.
+4.  **Resultado**: La app aparecerá **exactamente donde la dejaste** (con tu ruta azul trazada) y mostrará el diálogo de emergencia encima. Ya no te sacará de la aplicación.
 
 > [!TIP]
-> El color azul de la ruta ha sido ajustado a un **Cobalto Intenso** para que resalte perfectamente sobre el efecto de cristal de la interfaz.
+> Esta configuración es la más robusta posible para aplicaciones de seguridad, garantizando que el usuario nunca pierda su información de navegación durante una crisis.

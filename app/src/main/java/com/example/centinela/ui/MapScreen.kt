@@ -128,6 +128,18 @@ fun MapScreen(
         }
     }
 
+    // --- ANIMACIÓN FLOTANTE BIENVENIDA ---
+    val welcomeTransition = rememberInfiniteTransition(label = "welcome")
+    val welcomeOffset by welcomeTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 10f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "bounce"
+    )
+
     // Referencia al gestor de rutas
     var polylineAnnotationManager by remember { mutableStateOf<PolylineAnnotationManager?>(null) }
     var circleAnnotationManager by remember { mutableStateOf<CircleAnnotationManager?>(null) }
@@ -218,6 +230,32 @@ fun MapScreen(
                         },
                         modifier = Modifier.fillMaxSize()
                     )
+
+                    // --- MENSAJE DE BIENVENIDA PREMIUM ---
+                    AnimatedVisibility(
+                        visible = mostrarBienvenida,
+                        enter = fadeIn() + slideInVertically(),
+                        exit = fadeOut() + slideOutVertically(),
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 100.dp + welcomeOffset.dp) // Movimiento dinámico
+                            .zIndex(10f)
+                    ) {
+                        Surface(
+                            color = MidnightBlue, 
+                            shape = RoundedCornerShape(30.dp), 
+                            shadowElevation = 10.dp,
+                            modifier = Modifier.padding(horizontal = 24.dp)
+                        ) {
+                            Text(
+                                text = "¡Bienvenido a Centinela, $nombreUsuario! 🛡️", 
+                                color = Color.White, 
+                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp), 
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
 
                     // --- BOTONES SUPERIORES ---
                     Row(
@@ -397,7 +435,7 @@ fun MapScreen(
                             onDismissRequest = { mostrarAlerta = false },
                             confirmButton = { Button(onClick = { mostrarAlerta = false }) { Text("ESTOY BIEN") } },
                             title = { Text("¡ALERTA ENVIADA!") },
-                            text = { Text("Notificando a C5 y compartiendo ubicación.") }
+                            text = { Text("Tu ubicación en tiempo real ha sido enviada al C5 de la CDMX y a tus contactos de confianza. El auxilio va en camino.") }
                         )
                     }
 

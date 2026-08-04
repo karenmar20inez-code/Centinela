@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.telephony.SmsManager
 import android.util.Log
 import android.view.WindowManager
+import android.view.KeyEvent
 import android.provider.Settings
 import android.net.Uri
 import android.widget.Toast
@@ -32,6 +33,7 @@ class MainActivity : ComponentActivity() {
     
     companion object {
         var dispararAlertaGlobal by mutableStateOf(value = false)
+        var estaEnPrimerPlano = false
 
         fun enviarSmsGlobal(context: Context) {
             val prefs = EmergencyPrefs(context)
@@ -134,10 +136,31 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        estaEnPrimerPlano = true
+    }
+
+    override fun onPause() {
+        super.onPause()
+        estaEnPrimerPlano = false
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        // Si el servicio nos vuelve a llamar, nos aseguramos de despertar la pantalla
+        // Si el servicio nos vuelve a llamar, nos aseguramos de despertar la pantalla y disparar la alerta
         configurarPantallaDeBloqueo()
+        dispararAlertaGlobal = true
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (event != null && event.isCtrlPressed && event.isShiftPressed && keyCode == KeyEvent.KEYCODE_P) {
+            Log.e("SOS_Debug", "Atajo detectado: Ctrl + Shift + P")
+            dispararAlertaGlobal = true
+            enviarSmsGlobal(this)
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
     }
 }
 

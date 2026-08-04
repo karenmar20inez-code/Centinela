@@ -1,6 +1,4 @@
-- `[ ]` Implementar animación de pulsación infinita para el botón SOS
-- `[ ]` Aplicar efecto Glassmorphism (transparencia) al buscador y selector
-- `[ ]` Añadir marcadores visuales (inicio/fin) en la ruta usando `PointAnnotationManager`
-- `[ ]` Implementar entrada animada (slide-down) para el planificador
-- `[ ]` Refinar diseño de tarjetas con bordes extra redondeados (32.dp)
-- `[ ]` Sincronizar y verificar diseño Premium
+- `[x]` Configurar `launchMode="singleInstance"` en `AndroidManifest.xml` para `MainActivity`
+- `[x]` Optimizar `SosService.kt` con flags de lanzamiento inteligentes (`REORDER_TO_FRONT`)
+- `[x]` Asegurar que el SOS no interrumpa la sesión actual de la app
+- `[x]` Verificar activación sin cierre de app en el emulador
