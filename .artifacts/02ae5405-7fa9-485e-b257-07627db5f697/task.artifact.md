@@ -1,4 +1,6 @@
-- `[x]` Configurar `launchMode="singleInstance"` en `AndroidManifest.xml` para `MainActivity`
-- `[x]` Optimizar `SosService.kt` con flags de lanzamiento inteligentes (`REORDER_TO_FRONT`)
-- `[x]` Asegurar que el SOS no interrumpa la sesión actual de la app
-- `[x]` Verificar activación sin cierre de app en el emulador
+- `[x]` Implementar `SensorEventListener` en `SosService.kt`
+- `[x]` Inicializar `SensorManager` y registrar el acelerómetro
+- `[x]` Desarrollar el algoritmo de detección del patrón "Arriba-Abajo x2"
+- `[x]` Conectar la detección con la función `dispararEmergencia()`
+- `[x]` Añadir vibración de confirmación al detectar el patrón
+- `[x]` Verificar funcionamiento en el emulador (sensores virtuales)

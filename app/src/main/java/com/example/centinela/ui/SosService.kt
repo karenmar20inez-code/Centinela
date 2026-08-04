@@ -8,18 +8,35 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Build
 import android.os.IBinder
+import android.os.Vibrator
+import android.os.VibrationEffect
 import android.util.Log
 import android.app.PendingIntent
 import android.content.pm.ServiceInfo
 import androidx.core.app.NotificationCompat
 import com.example.centinela.R
 
-class SosService : Service() {
+class SosService : Service(), SensorEventListener {
 
     private var screenOffCount = 0
     private var lastPressTime: Long = 0
+
+    // --- VARIABLES PARA EL SENSOR ---
+    private lateinit var sensorManager: SensorManager
+    private var accelerometer: Sensor? = null
+    
+    // Estados del patrón Arriba-Abajo
+    private var cycleCount = 0
+    private var waitingForDown = false
+    private var lastCycleTime: Long = 0
+    private val SHAKE_THRESHOLD = 13.0f // Fuerza del movimiento
+    private val PATTERN_TIMEOUT = 2500L // Tiempo máximo para completar las 2 sacudidas
 
     private val powerButtonReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -103,6 +120,13 @@ class SosService : Service() {
         super.onCreate()
         crearCanalNotificacion()
         
+        // Inicializar Sensores
+        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        accelerometer?.let {
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
+        }
+
         val notification = crearNotificacion()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
@@ -150,8 +174,54 @@ class SosService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    // --- IMPLEMENTACIÓN DEL SENSOR ---
+    override fun onSensorChanged(event: SensorEvent?) {
+        if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
+            val y = event.values[1] // Eje vertical
+            val currentTime = System.currentTimeMillis()
+
+            // Si pasó mucho tiempo desde la última sacudida, reiniciamos el patrón
+            if (currentTime - lastCycleTime > PATTERN_TIMEOUT) {
+                cycleCount = 0
+                waitingForDown = false
+            }
+
+            if (!waitingForDown) {
+                // Detectar movimiento hacia ARRIBA (Y positivo fuerte)
+                if (y > SHAKE_THRESHOLD) {
+                    waitingForDown = true
+                    lastCycleTime = currentTime
+                }
+            } else {
+                // Detectar movimiento hacia ABAJO (Y negativo fuerte)
+                if (y < -SHAKE_THRESHOLD) {
+                    waitingForDown = false
+                    cycleCount++
+                    lastCycleTime = currentTime
+                    
+                    Log.d("SOS_Debug", "Sacudida detectada: Ciclo $cycleCount/2")
+                    vibrarConfirmacion()
+
+                    if (cycleCount >= 2) {
+                        Log.e("SOS_Debug", "¡PATRÓN DE MOVIMIENTO COMPLETADO!")
+                        dispararEmergencia(this)
+                        cycleCount = 0
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+
+    private fun vibrarConfirmacion() {
+        val vibrator = getSystemService(Vibrator::class.java)
+        vibrator?.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        sensorManager.unregisterListener(this)
         try {
             unregisterReceiver(powerButtonReceiver)
         } catch (e: Exception) {
