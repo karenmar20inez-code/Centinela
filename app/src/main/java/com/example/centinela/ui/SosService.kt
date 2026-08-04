@@ -62,21 +62,19 @@ class SosService : Service() {
     private fun lanzarNotificacionEmergencia(context: Context?) {
         if (context == null) return
         
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager = context.getSystemService(NotificationManager::class.java)
         
         // Canal de alta prioridad para la alerta
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                "emergency_alert_channel",
-                "Alertas Críticas de Emergencia",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                setSound(null, null)
-                enableVibration(true)
-                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-            }
-            notificationManager.createNotificationChannel(channel)
+        val channel = NotificationChannel(
+            "emergency_alert_channel",
+            "Alertas Críticas de Emergencia",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            setSound(null, null)
+            enableVibration(true)
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
         }
+        notificationManager.createNotificationChannel(channel)
 
         val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
         launchIntent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
@@ -108,11 +106,9 @@ class SosService : Service() {
         val notification = crearNotificacion()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        } else {
             @Suppress("DEPRECATION")
             startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-        } else {
-            startForeground(1, notification)
         }
 
         val filter = IntentFilter().apply {
@@ -122,26 +118,20 @@ class SosService : Service() {
             addAction("android.media.VOLUME_CHANGED_ACTION")
         }
         
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(powerButtonReceiver, filter, Context.RECEIVER_EXPORTED)
-        } else {
-            registerReceiver(powerButtonReceiver, filter)
-        }
+        registerReceiver(powerButtonReceiver, filter, RECEIVER_EXPORTED)
         Log.d("SOS_Debug", "SosService: Iniciado y escuchando hardware (Flag T+).")
     }
 
     private fun crearCanalNotificacion() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                "sos_service_channel",
-                "Protección Centinela",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Mantiene activa la detección de emergencia por hardware."
-            }
-            val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
+        val channel = NotificationChannel(
+            "sos_service_channel",
+            "Protección Centinela",
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "Mantiene activa la detección de emergencia por hardware."
         }
+        val manager = getSystemService(NotificationManager::class.java)
+        manager?.createNotificationChannel(channel)
     }
 
     private fun crearNotificacion(): Notification {

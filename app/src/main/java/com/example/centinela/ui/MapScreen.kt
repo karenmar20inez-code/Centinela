@@ -26,7 +26,7 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner as LifecycleComposeOwner
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import android.util.Log
@@ -92,7 +92,7 @@ fun MapScreen(
     // --- ESTADOS ---
     var estadoUsuario by rememberSaveable { mutableStateOf(EstadoSimulacion.REGISTRO_LOCAL) }
     var faseRegistro by rememberSaveable { mutableStateOf(FaseRegistro.SELECCION) }
-    var esRegistro by rememberSaveable { mutableStateOf(true) }
+    var esRegistro by rememberSaveable { mutableStateOf(value = true) }
 
     var nombreUsuario by rememberSaveable { mutableStateOf("") }
     var telefonoUsuario by rememberSaveable { mutableStateOf("") }
@@ -123,7 +123,7 @@ fun MapScreen(
     LaunchedEffect(estadoUsuario) {
         if (estadoUsuario == EstadoSimulacion.MAPA_ACTIVO) {
             mostrarBienvenida = true
-            delay(4000L)
+            delay(4000)
             mostrarBienvenida = false
         }
     }
@@ -577,44 +577,6 @@ private fun renderizarRutaPremium(
     }
 }
 
-private fun renderizarRuta(manager: PolylineAnnotationManager?, routes: List<RouteInfo>, pref: String) {
-    if (manager == null) {
-        Log.e("MapboxDebug", "Error: AnnotationManager es NULL")
-        return
-    }
-    try {
-        manager.deleteAll()
-        val r = if (pref == "rapida" && routes.size > 1) routes[1] else routes[0]
-        
-        if (r.points.isEmpty()) {
-            Log.e("MapboxDebug", "Error: La ruta seleccionada no tiene puntos")
-            return
-        }
-
-        Log.d("MapboxDebug", "Dibujando ruta con ${r.points.size} puntos. Primer punto: ${r.points[0]}")
-
-        // 1. Borde Blanco (Casing)
-        val casingOptions = PolylineAnnotationOptions()
-            .withPoints(r.points)
-            .withLineColor("#FFFFFF")
-            .withLineWidth(12.0)
-            .withLineOpacity(0.9)
-        manager.create(casingOptions)
-
-        // 2. Ruta Azul Intenso (Diseño Profesional)
-        val routeOptions = PolylineAnnotationOptions()
-            .withPoints(r.points)
-            .withLineColor("#0047AB") // Cobalt Blue (Más visible que Midnight)
-            .withLineWidth(6.5)
-            .withLineOpacity(1.0)
-        manager.create(routeOptions)
-        
-        Log.d("MapboxDebug", "Ruta creada exitosamente en el manager")
-    } catch (e: Exception) {
-        Log.e("MapboxDebug", "Error fatal al renderizar ruta: ${e.message}")
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginTextField(value: String, onValueChange: (String) -> Unit, placeholder: String, icon: ImageVector) {
@@ -642,7 +604,7 @@ fun rememberMapViewWithLifecycle(accessToken: String): MapView {
             getMapboxMap().setCamera(CameraOptions.Builder().center(Point.fromLngLat(-99.1332, 19.4326)).zoom(14.0).build())
         }
     }
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val lifecycle = LifecycleComposeOwner.current.lifecycle
     val observer = remember {
         LifecycleEventObserver { _, event ->
             when (event) {
