@@ -26,7 +26,7 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner as LifecycleComposeOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import android.util.Log
@@ -42,12 +42,7 @@ import com.mapbox.maps.MapView
 import com.mapbox.maps.ResourceOptions
 import com.mapbox.maps.Style
 import com.mapbox.maps.plugin.annotation.annotations
-import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationManager
-import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationOptions
-import com.mapbox.maps.plugin.annotation.generated.CircleAnnotationManager
-import com.mapbox.maps.plugin.annotation.generated.CircleAnnotationOptions
-import com.mapbox.maps.plugin.annotation.generated.createPolylineAnnotationManager
-import com.mapbox.maps.plugin.annotation.generated.createCircleAnnotationManager
+import com.mapbox.maps.plugin.annotation.generated.*
 import com.mapbox.maps.plugin.animation.camera
 import androidx.compose.animation.core.*
 import com.mapbox.api.directions.v5.DirectionsCriteria
@@ -95,22 +90,11 @@ fun MapScreen(
     var estadoUsuario by rememberSaveable { mutableStateOf(EstadoSimulacion.REGISTRO_LOCAL) }
     var faseRegistro by rememberSaveable { mutableStateOf(FaseRegistro.SELECCION) }
     var esRegistro by rememberSaveable { mutableStateOf(value = true) }
-
     var nombreUsuario by rememberSaveable { mutableStateOf("") }
     var telefonoUsuario by rememberSaveable { mutableStateOf("") }
 
     var mostrarAlerta by rememberSaveable { mutableStateOf(autoTriggerSos) }
     
-    // Conectar con el botón de hardware de MainActivity
-    LaunchedEffect(MainActivity.dispararAlertaGlobal) {
-        if (MainActivity.dispararAlertaGlobal) {
-            mostrarAlerta = true
-            // Enviar SMS automáticos al activarse por hardware
-            MainActivity.enviarSmsGlobal(context)
-            MainActivity.dispararAlertaGlobal = false // Consumir el evento
-        }
-    }
-
     var origen by rememberSaveable { mutableStateOf("") }
     var destino by rememberSaveable { mutableStateOf("") }
     var analizandoRuta by rememberSaveable { mutableStateOf(false) }
@@ -119,6 +103,10 @@ fun MapScreen(
     
     var routesFound by remember { mutableStateOf<List<RouteInfo>>(emptyList()) }
     var preferenciaActual by rememberSaveable { mutableStateOf("segura") }
+
+    // --- ESTADOS DE PATRULLA ---
+    var patrolEta by remember { mutableIntStateOf(0) }
+    var showingPatrolEta by remember { mutableStateOf(false) }
 
     // --- LÓGICA DE BIENVENIDA ---
     var mostrarBienvenida by remember { mutableStateOf(false) }
@@ -142,9 +130,10 @@ fun MapScreen(
         label = "bounce"
     )
 
-    // Referencia al gestor de rutas
+    // Referencias a los gestores de anotaciones
     var polylineAnnotationManager by remember { mutableStateOf<PolylineAnnotationManager?>(null) }
     var circleAnnotationManager by remember { mutableStateOf<CircleAnnotationManager?>(null) }
+    var patrolAnnotationManager by remember { mutableStateOf<CircleAnnotationManager?>(null) }
 
     // --- ANIMACIÓN PULSANTE SOS ---
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
@@ -168,7 +157,6 @@ fun MapScreen(
     )
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-
     val colorPrimario = MidnightBlue
     val colorFondo = BoneWhite
     val colorAlerta = CrimsonRed
@@ -220,13 +208,39 @@ fun MapScreen(
                 Box(modifier = Modifier.fillMaxSize()) {
                     val mapView = rememberMapViewWithLifecycle(mapboxToken)
 
+                    // Conectar con el botón de hardware de MainActivity
+                    LaunchedEffect(MainActivity.dispararAlertaGlobal) {
+                        if (MainActivity.dispararAlertaGlobal) {
+                            mostrarAlerta = true
+                            scope.launch {
+                                val userLocation = mapView.getMapboxMap().cameraState.center
+                                val (patrolPoint, eta) = simulatePatrolSearch(mapboxToken, userLocation)
+                                patrolEta = eta
+                                showingPatrolEta = true
+                                
+                                patrolAnnotationManager?.deleteAll()
+                                patrolAnnotationManager?.create(
+                                    CircleAnnotationOptions()
+                                        .withPoint(patrolPoint)
+                                        .withCircleRadius(12.0)
+                                        .withCircleColor("#0000FF")
+                                        .withCircleStrokeWidth(3.0)
+                                        .withCircleStrokeColor("#FFFFFF")
+                                )
+                            }
+                            MainActivity.enviarSmsGlobal(context)
+                            MainActivity.dispararAlertaGlobal = false 
+                        }
+                    }
+
                     AndroidView(
                         factory = { 
                             mapView.apply {
                                 getMapboxMap().getStyle {
                                     polylineAnnotationManager = annotations.createPolylineAnnotationManager()
                                     circleAnnotationManager = annotations.createCircleAnnotationManager()
-                                    Log.d("MapboxDebug", "Managers de rutas y puntos listos.")
+                                    patrolAnnotationManager = annotations.createCircleAnnotationManager()
+                                    Log.d("MapboxDebug", "Managers listos.")
                                 }
                             }
                         },
@@ -240,22 +254,11 @@ fun MapScreen(
                         exit = fadeOut() + slideOutVertically(),
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .padding(top = 100.dp + welcomeOffset.dp) // Movimiento dinámico
+                            .padding(top = 100.dp + welcomeOffset.dp)
                             .zIndex(10f)
                     ) {
-                        Surface(
-                            color = MidnightBlue, 
-                            shape = RoundedCornerShape(30.dp), 
-                            shadowElevation = 10.dp,
-                            modifier = Modifier.padding(horizontal = 24.dp)
-                        ) {
-                            Text(
-                                text = "¡Bienvenido a Centinela, $nombreUsuario! 🛡️", 
-                                color = Color.White, 
-                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp), 
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center
-                            )
+                        Surface(color = MidnightBlue, shape = RoundedCornerShape(30.dp), shadowElevation = 10.dp, modifier = Modifier.padding(horizontal = 24.dp)) {
+                            Text(text = "¡Bienvenido a Centinela, $nombreUsuario! 🛡️", color = Color.White, modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp), fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                         }
                     }
 
@@ -264,15 +267,8 @@ fun MapScreen(
                         modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        IconButton(
-                            onClick = { scope.launch { drawerState.open() } },
-                            modifier = Modifier.size(50.dp).background(Color.White, CircleShape).shadow(4.dp, CircleShape)
-                        ) { Icon(Icons.Default.Menu, null, tint = colorPrimario) }
-
-                        IconButton(
-                            onClick = { planificadorVisible = true },
-                            modifier = Modifier.size(50.dp).background(colorPrimario, CircleShape).shadow(4.dp, CircleShape)
-                        ) { Icon(Icons.Default.Search, null, tint = Color.White) }
+                        IconButton(onClick = { scope.launch { drawerState.open() } }, modifier = Modifier.size(50.dp).background(Color.White, CircleShape).shadow(4.dp, CircleShape)) { Icon(Icons.Default.Menu, null, tint = colorPrimario) }
+                        IconButton(onClick = { planificadorVisible = true }, modifier = Modifier.size(50.dp).background(colorPrimario, CircleShape).shadow(4.dp, CircleShape)) { Icon(Icons.Default.Search, null, tint = Color.White) }
                     }
 
                     // --- PLANIFICADOR (AHORA ARRIBA CON ANIMACIÓN Y GLASS) ---
@@ -280,37 +276,15 @@ fun MapScreen(
                         visible = planificadorVisible,
                         enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
                         exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.TopCenter)
-                            .statusBarsPadding()
-                            .padding(top = 70.dp, start = 20.dp, end = 20.dp)
+                        modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter).statusBarsPadding().padding(top = 70.dp, start = 20.dp, end = 20.dp)
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(32.dp),
-                            shadowElevation = 15.dp,
-                            color = Color.White.copy(alpha = 0.92f) // Efecto cristal
-                        ) {
+                        Surface(shape = RoundedCornerShape(32.dp), shadowElevation = 15.dp, color = Color.White.copy(alpha = 0.92f)) {
                             Column(modifier = Modifier.padding(24.dp)) {
                                 Text("Planificador Seguro", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = colorPrimario)
                                 Spacer(modifier = Modifier.height(16.dp))
-                                OutlinedTextField(
-                                    value = origen, 
-                                    onValueChange = { origen = it }, 
-                                    placeholder = { Text("Origen") }, 
-                                    modifier = Modifier.fillMaxWidth(), 
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White.copy(0.5f))
-                                )
+                                OutlinedTextField(value = origen, onValueChange = { origen = it }, placeholder = { Text("Origen") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White.copy(0.5f)))
                                 Spacer(modifier = Modifier.height(8.dp))
-                                OutlinedTextField(
-                                    value = destino, 
-                                    onValueChange = { destino = it }, 
-                                    placeholder = { Text("Destino") }, 
-                                    modifier = Modifier.fillMaxWidth(), 
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White.copy(0.5f))
-                                )
+                                OutlinedTextField(value = destino, onValueChange = { destino = it }, placeholder = { Text("Destino") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White.copy(0.5f)))
                                 Spacer(modifier = Modifier.height(20.dp))
                                 Button(
                                     onClick = {
@@ -319,39 +293,21 @@ fun MapScreen(
                                             val mapCenter = mapView.getMapboxMap().cameraState.center
                                             scope.launch {
                                                 try {
-                                                    Log.d("MapboxDebug", "[Paso 1] Iniciando búsqueda...")
                                                     val queryOri = if (!origen.lowercase().contains("cdmx")) "$origen, CDMX" else origen
                                                     val queryDes = if (!destino.lowercase().contains("cdmx")) "$destino, CDMX" else destino
-
                                                     val pOri = geocodeSuspend(mapboxToken, queryOri, mapCenter)
-                                                    if (pOri == null) {
-                                                        analizandoRuta = false
-                                                        Toast.makeText(context, "Origen no encontrado.", Toast.LENGTH_SHORT).show()
-                                                        return@launch
-                                                    }
                                                     val pDes = geocodeSuspend(mapboxToken, queryDes, mapCenter)
-                                                    if (pDes == null) {
+                                                    if (pOri == null || pDes == null) {
                                                         analizandoRuta = false
-                                                        Toast.makeText(context, "Destino no encontrado.", Toast.LENGTH_SHORT).show()
+                                                        Toast.makeText(context, "Dirección no encontrada.", Toast.LENGTH_SHORT).show()
                                                         return@launch
                                                     }
-
                                                     val routes = fetchRoutesSuspend(mapboxToken, pOri, pDes)
-                                                    
                                                     if (routes.isNotEmpty()) {
                                                         routesFound = routes
                                                         renderizarRutaPremium(polylineAnnotationManager, circleAnnotationManager, routes, "segura")
-                                                        
-                                                        val allPoints = routes[0].points
-                                                        if (allPoints.isNotEmpty()) {
-                                                            val camera = mapView.getMapboxMap().cameraForCoordinates(
-                                                                allPoints,
-                                                                EdgeInsets(380.0, 120.0, 380.0, 120.0),
-                                                                null, null
-                                                            )
-                                                            mapView.camera.easeTo(camera, com.mapbox.maps.plugin.animation.MapAnimationOptions.mapAnimationOptions { duration(1500) })
-                                                        }
-
+                                                        val camera = mapView.getMapboxMap().cameraForCoordinates(routes[0].points, EdgeInsets(380.0, 120.0, 380.0, 120.0), null, null)
+                                                        mapView.camera.easeTo(camera, com.mapbox.maps.plugin.animation.MapAnimationOptions.mapAnimationOptions { duration(1500) })
                                                         analizandoRuta = false
                                                         rutaTrazada = true
                                                         planificadorVisible = false
@@ -379,20 +335,8 @@ fun MapScreen(
                         val currentRoute = if (preferenciaActual == "rapida" && routesFound.size > 1) routesFound[1] else routesFound[0]
                         val min = (currentRoute.duration / 60).toInt()
                         val km = String.format(java.util.Locale.US, "%.1f", currentRoute.distance / 1000)
-                        
-                        Surface(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(bottom = 225.dp)
-                                .wrapContentWidth(),
-                            shape = RoundedCornerShape(24.dp),
-                            color = MidnightBlue.copy(alpha = 0.85f),
-                            shadowElevation = 8.dp
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                        Surface(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 225.dp).wrapContentWidth(), shape = RoundedCornerShape(24.dp), color = MidnightBlue.copy(alpha = 0.85f), shadowElevation = 8.dp) {
+                            Row(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Timer, null, tint = Color.White, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("$min min", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
@@ -408,24 +352,15 @@ fun MapScreen(
 
                     // --- SELECTOR PILL (ABAJO CON GLASS) ---
                     if (rutaTrazada && !planificadorVisible) {
-                        Surface(
-                            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 160.dp).height(55.dp),
-                            shape = RoundedCornerShape(30.dp),
-                            color = Color.White.copy(0.9f),
-                            shadowElevation = 10.dp
-                        ) {
+                        Surface(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 160.dp).height(55.dp), shape = RoundedCornerShape(30.dp), color = Color.White.copy(0.9f), shadowElevation = 10.dp) {
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 6.dp)) {
                                 PillOption("Segura", preferenciaActual == "segura") {
                                     preferenciaActual = "segura"
-                                    if (routesFound.isNotEmpty()) {
-                                        renderizarRutaPremium(polylineAnnotationManager, circleAnnotationManager, routesFound, "segura")
-                                    }
+                                    if (routesFound.isNotEmpty()) renderizarRutaPremium(polylineAnnotationManager, circleAnnotationManager, routesFound, "segura")
                                 }
                                 PillOption("Rápida", preferenciaActual == "rapida") {
                                     preferenciaActual = "rapida"
-                                    if (routesFound.isNotEmpty()) {
-                                        renderizarRutaPremium(polylineAnnotationManager, circleAnnotationManager, routesFound, "rapida")
-                                    }
+                                    if (routesFound.isNotEmpty()) renderizarRutaPremium(polylineAnnotationManager, circleAnnotationManager, routesFound, "rapida")
                                 }
                             }
                         }
@@ -433,11 +368,7 @@ fun MapScreen(
 
                     // --- SELLO C5 ---
                     if (rutaTrazada) {
-                        Surface(
-                            modifier = Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 100.dp),
-                            color = EmeraldGreen,
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
+                        Surface(modifier = Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 100.dp), color = EmeraldGreen, shape = RoundedCornerShape(12.dp)) {
                             Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.VerifiedUser, null, tint = Color.White, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -448,17 +379,8 @@ fun MapScreen(
 
                     // --- BOTÓN SOS CON ANIMACIÓN DE LATIDO ---
                     Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 40.dp).zIndex(10f)) {
-                        Surface(
-                            modifier = Modifier.size(100.dp * scale),
-                            shape = CircleShape,
-                            color = colorAlerta.copy(alpha = opacity),
-                            shadowElevation = 12.dp,
-                            border = androidx.compose.foundation.BorderStroke(4.dp * scale, Color.White.copy(0.4f))
-                        ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize().clickable { mostrarAlerta = true },
-                                contentAlignment = Alignment.Center
-                            ) {
+                        Surface(modifier = Modifier.size(100.dp * scale), shape = CircleShape, color = colorAlerta.copy(alpha = opacity), shadowElevation = 12.dp, border = androidx.compose.foundation.BorderStroke(4.dp * scale, Color.White.copy(0.4f))) {
+                            Box(modifier = Modifier.fillMaxSize().clickable { MainActivity.dispararAlertaGlobal = true; mostrarAlerta = true }, contentAlignment = Alignment.Center) {
                                 Text("SOS", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color.White)
                             }
                         }
@@ -466,17 +388,18 @@ fun MapScreen(
 
                     if (mostrarAlerta) {
                         AlertDialog(
-                            onDismissRequest = { mostrarAlerta = false },
-                            confirmButton = { Button(onClick = { mostrarAlerta = false }) { Text("ESTOY BIEN") } },
+                            onDismissRequest = { mostrarAlerta = false; showingPatrolEta = false },
+                            confirmButton = { Button(onClick = { mostrarAlerta = false; showingPatrolEta = false }) { Text("ESTOY BIEN") } },
                             title = { Text("¡ALERTA ENVIADA!") },
-                            text = { Text("Tu ubicación en tiempo real ha sido enviada al C5 de la CDMX y a tus contactos de confianza. El auxilio va en camino.") }
+                            text = { 
+                                val patrolInfo = if (showingPatrolEta) "\n\nUna patrulla cercana ha sido asignada. Tiempo estimado de llegada: $patrolEta min." else ""
+                                Text("Tu ubicación en tiempo real ha sido enviada al C5 de la CDMX y a tus contactos de confianza. El auxilio va en camino.$patrolInfo") 
+                            }
                         )
                     }
 
                     if (analizandoRuta) {
-                        Box(modifier = Modifier.fillMaxSize().background(MidnightBlue.copy(0.4f)), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = Color.White)
-                        }
+                        Box(modifier = Modifier.fillMaxSize().background(MidnightBlue.copy(0.4f)), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Color.White) }
                     }
                 }
             }
@@ -486,11 +409,7 @@ fun MapScreen(
 
 @Composable
 fun PillOption(label: String, isSelected: Boolean, onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier.clickable { onClick() }.padding(2.dp),
-        shape = RoundedCornerShape(20.dp),
-        color = if (isSelected) MidnightBlue else Color.Transparent
-    ) {
+    Surface(modifier = Modifier.clickable { onClick() }.padding(2.dp), shape = RoundedCornerShape(20.dp), color = if (isSelected) MidnightBlue else Color.Transparent) {
         Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             if (isSelected) Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(14.dp))
             Spacer(modifier = Modifier.width(4.dp))
@@ -501,150 +420,100 @@ fun PillOption(label: String, isSelected: Boolean, onClick: () -> Unit) {
 
 // --- FUNCIONES DE APOYO (REFACTORIZADAS A COROUTINES) ---
 
-suspend fun geocodeSuspend(token: String, query: String, proxy: Point): Point? = suspendCancellableCoroutine { continuation ->
-    Log.d("MapboxDebug", "Buscando coordenadas para: $query")
-    MapboxGeocoding.builder()
-        .accessToken(token)
-        .query(query)
-        .country("MX")
-        .proximity(proxy)
-        .autocomplete(true)
-        .limit(1)
-        .build()
-        .enqueueCall(object : Callback<GeocodingResponse> {
-            override fun onResponse(call: Call<GeocodingResponse>, response: Response<GeocodingResponse>) {
-                val f = response.body()?.features()
-                val point = if (f.isNullOrEmpty()) null else f[0].center()
-                Log.d("MapboxDebug", "Resultado geocodificación: $point")
-                continuation.resume(point)
+suspend fun simulatePatrolSearch(token: String, userLoc: Point): Pair<Point, Int> {
+    val randomLat = userLoc.latitude() + (Math.random() - 0.5) / 50.0
+    val randomLon = userLoc.longitude() + (Math.random() - 0.5) / 50.0
+    val patrolPoint = Point.fromLngLat(randomLon, randomLat)
+    val options = com.mapbox.api.directions.v5.models.RouteOptions.builder()
+        .baseUrl("https://api.mapbox.com").user("mapbox").profile(DirectionsCriteria.PROFILE_DRIVING_TRAFFIC)
+        .coordinatesList(listOf(patrolPoint, userLoc)).build()
+    val etaSeconds = suspendCancellableCoroutine<Double> { continuation ->
+        MapboxDirections.builder().accessToken(token).routeOptions(options).build().enqueueCall(object : Callback<DirectionsResponse> {
+            override fun onResponse(call: Call<DirectionsResponse>, response: Response<DirectionsResponse>) {
+                val duration = response.body()?.routes()?.firstOrNull()?.duration() ?: 300.0
+                continuation.resume(duration)
             }
-            override fun onFailure(call: Call<GeocodingResponse>, t: Throwable) {
-                Log.e("MapboxDebug", "Error geocodificación: ${t.message}")
-                continuation.resume(null)
-            }
+            override fun onFailure(call: Call<DirectionsResponse>, t: Throwable) { continuation.resume(300.0) }
         })
+    }
+    return Pair(patrolPoint, (etaSeconds / 60).toInt())
+}
+
+suspend fun geocodeSuspend(token: String, query: String, proxy: Point): Point? = suspendCancellableCoroutine { continuation ->
+    MapboxGeocoding.builder().accessToken(token).query(query).country("MX").proximity(proxy).autocomplete(true).limit(1).build().enqueueCall(object : Callback<GeocodingResponse> {
+        override fun onResponse(call: Call<GeocodingResponse>, response: Response<GeocodingResponse>) {
+            val f = response.body()?.features()
+            continuation.resume(if (f.isNullOrEmpty()) null else f[0].center())
+        }
+        override fun onFailure(call: Call<GeocodingResponse>, t: Throwable) { continuation.resume(null) }
+    })
 }
 
 suspend fun fetchRoutesSuspend(token: String, start: Point, end: Point): List<RouteInfo> = suspendCancellableCoroutine { continuation ->
-    Log.d("MapboxDebug", "[Paso 4] Solicitando ruta con TRÁFICO entre $start y $end")
     val options = com.mapbox.api.directions.v5.models.RouteOptions.builder()
-        .baseUrl("https://api.mapbox.com")
-        .user("mapbox")
-        .profile(DirectionsCriteria.PROFILE_DRIVING_TRAFFIC) // MOTOR DE TRÁFICO REAL
-        .coordinatesList(listOf(start, end))
-        .overview(DirectionsCriteria.OVERVIEW_FULL)
-        .geometries(DirectionsCriteria.GEOMETRY_POLYLINE6)
-        .alternatives(true)
-        .annotationsList(listOf(DirectionsCriteria.ANNOTATION_DURATION, DirectionsCriteria.ANNOTATION_DISTANCE))
-        .build()
-
+        .baseUrl("https://api.mapbox.com").user("mapbox").profile(DirectionsCriteria.PROFILE_DRIVING_TRAFFIC)
+        .coordinatesList(listOf(start, end)).overview(DirectionsCriteria.OVERVIEW_FULL).geometries(DirectionsCriteria.GEOMETRY_POLYLINE6)
+        .alternatives(true).annotationsList(listOf(DirectionsCriteria.ANNOTATION_DURATION, DirectionsCriteria.ANNOTATION_DISTANCE)).build()
     MapboxDirections.builder().accessToken(token).routeOptions(options).build().enqueueCall(object : Callback<DirectionsResponse> {
         override fun onResponse(call: Call<DirectionsResponse>, response: Response<DirectionsResponse>) {
-            if (!response.isSuccessful) {
-                continuation.resume(emptyList())
-                return
-            }
+            if (!response.isSuccessful) { continuation.resume(emptyList()); return }
             val routes = response.body()?.routes() ?: emptyList()
             val result = routes.mapIndexed { i, r ->
                 val geometry = r.geometry()
                 val pts = if (geometry != null) {
-                    try {
-                        com.mapbox.geojson.LineString.fromPolyline(geometry, 6).coordinates()
-                    } catch (e: Exception) {
-                        com.mapbox.geojson.LineString.fromPolyline(geometry, 5).coordinates()
-                    }
+                    try { com.mapbox.geojson.LineString.fromPolyline(geometry, 6).coordinates() }
+                    catch (e: Exception) { try { com.mapbox.geojson.LineString.fromPolyline(geometry, 5).coordinates() } catch (e2: Exception) { emptyList() } }
                 } else emptyList()
-                
-                RouteInfo(
-                    points = pts, 
-                    type = if (i == 0) "segura" else "rapida",
-                    duration = r.duration() ?: 0.0,
-                    distance = r.distance() ?: 0.0
-                )
+                RouteInfo(pts, if (i == 0) "segura" else "rapida", r.duration() ?: 0.0, r.distance() ?: 0.0)
             }
             continuation.resume(result)
         }
-        override fun onFailure(call: Call<DirectionsResponse>, t: Throwable) {
-            continuation.resume(emptyList())
-        }
+        override fun onFailure(call: Call<DirectionsResponse>, t: Throwable) { continuation.resume(emptyList()) }
     })
 }
 
-private fun renderizarRutaPremium(
-    polyManager: PolylineAnnotationManager?, 
-    circleManager: CircleAnnotationManager?,
-    routes: List<RouteInfo>, 
-    pref: String
-) {
+private fun renderizarRutaPremium(polyManager: PolylineAnnotationManager?, circleManager: CircleAnnotationManager?, routes: List<RouteInfo>, pref: String) {
     if (polyManager == null || circleManager == null) return
-    
     try {
         polyManager.deleteAll()
         circleManager.deleteAll()
-        
         val r = if (pref == "rapida" && routes.size > 1) routes[1] else routes[0]
         if (r.points.isEmpty()) return
-
-        // 1. DIBUJAR RUTA (CASING + CORE)
         polyManager.create(PolylineAnnotationOptions().withPoints(r.points).withLineColor("#FFFFFF").withLineWidth(14.0))
         polyManager.create(PolylineAnnotationOptions().withPoints(r.points).withLineColor("#0047AB").withLineWidth(8.0))
-
-        // 2. AÑADIR MARCADORES DE INICIO Y FIN (CIRCULOS)
-        val startPoint = r.points.first()
-        val endPoint = r.points.last()
-
-        // Punto de Inicio (Azul con borde blanco)
+        val startPoint = r.points.first(); val endPoint = r.points.last()
         circleManager.create(CircleAnnotationOptions().withPoint(startPoint).withCircleRadius(10.0).withCircleColor("#FFFFFF").withCircleStrokeWidth(2.0).withCircleStrokeColor("#0047AB"))
         circleManager.create(CircleAnnotationOptions().withPoint(startPoint).withCircleRadius(6.0).withCircleColor("#0047AB"))
-
-        // Punto de Destino (Rojo con borde blanco)
         circleManager.create(CircleAnnotationOptions().withPoint(endPoint).withCircleRadius(12.0).withCircleColor("#FFFFFF").withCircleStrokeWidth(3.0).withCircleStrokeColor("#FF0000"))
         circleManager.create(CircleAnnotationOptions().withPoint(endPoint).withCircleRadius(7.0).withCircleColor("#FF0000"))
-        
-        Log.d("MapboxDebug", "Ruta y círculos renderizados.")
-    } catch (e: Exception) {
-        Log.e("MapboxDebug", "Error renderizado: ${e.message}")
-    }
+    } catch (e: Exception) { Log.e("MapboxDebug", "Error render: ${e.message}") }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginTextField(value: String, onValueChange: (String) -> Unit, placeholder: String, icon: ImageVector) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        placeholder = { Text(placeholder) },
-        modifier = Modifier.fillMaxWidth(),
-        leadingIcon = { Icon(icon, contentDescription = null) },
-        singleLine = true,
-        shape = RoundedCornerShape(8.dp)
-    )
+    OutlinedTextField(value = value, onValueChange = onValueChange, placeholder = { Text(placeholder) }, modifier = Modifier.fillMaxWidth(), leadingIcon = { Icon(icon, contentDescription = null) }, singleLine = true, shape = RoundedCornerShape(8.dp))
 }
 
 @Composable
 fun rememberMapViewWithLifecycle(accessToken: String): MapView {
     val context = LocalContext.current
     val mapView = remember {
-        val mapInitOptions = MapInitOptions(
-            context = context,
-            resourceOptions = ResourceOptions.Builder().accessToken(accessToken).build()
-        )
+        val mapInitOptions = MapInitOptions(context = context, resourceOptions = ResourceOptions.Builder().accessToken(accessToken).build())
         MapView(context, mapInitOptions).apply {
             getMapboxMap().loadStyleUri(Style.MAPBOX_STREETS)
             getMapboxMap().setCamera(CameraOptions.Builder().center(Point.fromLngLat(-99.1332, 19.4326)).zoom(14.0).build())
         }
     }
-    val lifecycle = LifecycleComposeOwner.current.lifecycle
-    val observer = remember {
-        LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_START -> mapView.onStart()
-                Lifecycle.Event.ON_STOP -> mapView.onStop()
-                Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
-                else -> Unit
-            }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val observer = remember { LifecycleEventObserver { _, event ->
+        when (event) {
+            Lifecycle.Event.ON_START -> mapView.onStart()
+            Lifecycle.Event.ON_STOP -> mapView.onStop()
+            Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
+            else -> Unit
         }
-    }
+    } }
     DisposableEffect(lifecycle) {
         lifecycle.addObserver(observer)
         onDispose { lifecycle.removeObserver(observer) }

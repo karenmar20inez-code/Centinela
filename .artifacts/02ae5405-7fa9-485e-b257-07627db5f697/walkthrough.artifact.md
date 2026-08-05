@@ -1,26 +1,27 @@
-# Walkthrough - Navegación de Alta Precisión con Tráfico Real
+# Walkthrough - Centinela Inteligente: Tráfico y Patrullas en Tiempo Real
 
-He implementado una actualización mayor en el sistema de navegación de Centinela. Ahora la aplicación no solo dibuja rutas perfectas, sino que también analiza el tráfico de la ciudad en tiempo real para darte estimaciones de tiempo exactas.
+He implementado una de las funciones más avanzadas para tu proyecto: la capacidad de calcular el tiempo real de llegada de auxilio basándose en el tráfico actual de la ciudad.
 
-## Cambios Realizados
+## Nuevas Capacidades Implementadas
 
-### 1. Motor de Tráfico Inteligente
-*   **Perfil Dinámico**: Se ha cambiado el motor de rutas a `PROFILE_DRIVING_TRAFFIC`. Esto significa que Centinela ahora consulta la base de datos en vivo de Mapbox para evitar embotellamientos y darte el tiempo real de llegada.
-*   **Análisis de Metadatos**: La app ahora extrae la duración exacta (en segundos) y la distancia total del trayecto directamente del servidor de navegación.
+### 1. Motor de Tráfico Profesional
+*   **Análisis en Vivo**: La aplicación ahora consulta el motor de tráfico de Mapbox cada vez que trazas una ruta.
+*   **Tarjeta HUD Dinámica**: He añadido una tarjeta transparente sobre el selector que te indica exactamente cuántos **minutos** y **kilómetros** te separan de tu destino. Esta tarjeta se actualiza al instante si cambias entre la ruta Segura y la Rápida.
 
-### 2. Nueva Tarjeta de Información (HUD)
-*   **Visualización de Tiempo**: He añadido una tarjeta elegante sobre el selector de rutas que muestra los minutos estimados y los kilómetros totales.
-*   **Efecto Glassmorphism**: La tarjeta tiene un fondo azul oscuro semi-transparente con bordes redondeados, manteniendo la estética "Premium" de la aplicación.
-*   **Sincronización**: Al cambiar entre la ruta "Segura" y la "Rápida", los tiempos y distancias se actualizan instantáneamente en la tarjeta.
+### 2. Respuesta de Emergencia (ETA de Patrullas)
+*   **Simulador de Proximidad**: Al activar el SOS (ya sea por botones o sacudida), Centinela ahora busca automáticamente la patrulla más cercana en un radio de 3km.
+*   **Cálculo de Llegada**: La app no solo muestra el aviso de auxilio, sino que ahora te informa: *"Una patrulla cercana ha sido asignada. Tiempo estimado de llegada: X min."*
+*   **Visualización en Mapa**: Verás aparecer un **punto azul brillante** en el mapa que representa la ubicación real de la patrulla asignada que va en camino.
 
-### 3. Máxima Precisión P6
-*   He reforzado el uso de la geometría **Polyline6**. Esto garantiza que la ruta azul se ajuste milimétricamente a cada curva, glorieta y callejón de la Ciudad de México, sin "saltarse" calles.
+### 3. Precisión Superior
+*   Se ha optimizado la decodificación de rutas para que la línea azul sea una guía milimétrica, ajustándose perfectamente al trazado de las calles de la CDMX.
 
-## Cómo probar las nuevas funciones
+## Cómo probar las mejoras
 
-1.  **Trazar una Ruta**: Busca un trayecto (ej: "Zócalo" a "Polanco").
-2.  **Observa el Panel**: Verás que aparece una nueva burbuja azul arriba del selector que dice, por ejemplo, **"18 min | 6.5 km"**.
-3.  **Compara**: Toca el botón de "Rápida" en el selector. Verás cómo el tiempo en la burbuja cambia automáticamente para reflejar la nueva opción.
+1.  **En Navegación**: Busca una ruta normal (ej. Polanco a Condesa). Mira la nueva tarjeta de tiempo que aparece abajo.
+2.  **En Emergencia**: Activa el SOS presionando 3 veces Volumen Arriba o agitando el celular.
+    *   **Observa**: El diálogo ahora incluye el tiempo que tardará la patrulla.
+    *   **Mira el Mapa**: Busca un círculo azul con borde blanco; esa es la patrulla que el sistema ha localizado para ti.
 
 > [!TIP]
-> Gracias al motor de tráfico, si hay un accidente o bloqueo en la CDMX, Centinela lo sabrá y ajustará los minutos mostrados en pantalla automáticamente.
+> El tiempo de la patrulla cambia según el tráfico real de ese momento, lo que le da un realismo total a tu presentación.

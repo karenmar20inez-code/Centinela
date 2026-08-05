@@ -2,5 +2,6 @@
 - `[x]` Modificar `fetchRoutesSuspend` para usar `PROFILE_DRIVING_TRAFFIC` y extraer duraciones
 - `[x]` Crear el componente visual `TrafficInfoCard` con efecto Glassmorphism
 - `[x]` Integrar la tarjeta de tráfico en la pantalla principal del mapa
+- `[x]` Implementar simulador de búsqueda de patrullas con cálculo de tiempo real (ETA)
 - `[x]` Refinar el renderizado de rutas para máxima precisión P6
 - `[x]` Verificar estimaciones en el emulador
