@@ -76,7 +76,9 @@ enum class FaseRegistro {
 // --- ESTRUCTURAS DE DATOS ---
 data class RouteInfo(
     val points: List<Point>,
-    val type: String // "segura" o "rapida"
+    val type: String, // "segura" o "rapida"
+    val duration: Double, // Segundos con tráfico
+    val distance: Double // Metros
 )
 
 @Composable
@@ -372,6 +374,38 @@ fun MapScreen(
                         }
                     }
 
+                    // --- TARJETA DE INFORMACIÓN DE TRÁFICO ---
+                    if (rutaTrazada && !planificadorVisible && routesFound.isNotEmpty()) {
+                        val currentRoute = if (preferenciaActual == "rapida" && routesFound.size > 1) routesFound[1] else routesFound[0]
+                        val min = (currentRoute.duration / 60).toInt()
+                        val km = String.format(java.util.Locale.US, "%.1f", currentRoute.distance / 1000)
+                        
+                        Surface(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 225.dp)
+                                .wrapContentWidth(),
+                            shape = RoundedCornerShape(24.dp),
+                            color = MidnightBlue.copy(alpha = 0.85f),
+                            shadowElevation = 8.dp
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Timer, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("$min min", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                                Spacer(modifier = Modifier.width(12.dp))
+                                VerticalDivider(modifier = Modifier.height(20.dp).width(1.dp), color = Color.White.copy(0.3f))
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Icon(Icons.Default.Route, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("$km km", color = Color.White.copy(0.9f), fontSize = 14.sp)
+                            }
+                        }
+                    }
+
                     // --- SELECTOR PILL (ABAJO CON GLASS) ---
                     if (rutaTrazada && !planificadorVisible) {
                         Surface(
@@ -492,49 +526,45 @@ suspend fun geocodeSuspend(token: String, query: String, proxy: Point): Point? =
 }
 
 suspend fun fetchRoutesSuspend(token: String, start: Point, end: Point): List<RouteInfo> = suspendCancellableCoroutine { continuation ->
-    Log.d("MapboxDebug", "[Paso 4] Solicitando ruta entre $start y $end")
+    Log.d("MapboxDebug", "[Paso 4] Solicitando ruta con TRÁFICO entre $start y $end")
     val options = com.mapbox.api.directions.v5.models.RouteOptions.builder()
         .baseUrl("https://api.mapbox.com")
         .user("mapbox")
-        .profile(DirectionsCriteria.PROFILE_DRIVING) // Cambiado a DRIVING para máxima compatibilidad
+        .profile(DirectionsCriteria.PROFILE_DRIVING_TRAFFIC) // MOTOR DE TRÁFICO REAL
         .coordinatesList(listOf(start, end))
         .overview(DirectionsCriteria.OVERVIEW_FULL)
         .geometries(DirectionsCriteria.GEOMETRY_POLYLINE6)
         .alternatives(true)
+        .annotationsList(listOf(DirectionsCriteria.ANNOTATION_DURATION, DirectionsCriteria.ANNOTATION_DISTANCE))
         .build()
 
     MapboxDirections.builder().accessToken(token).routeOptions(options).build().enqueueCall(object : Callback<DirectionsResponse> {
         override fun onResponse(call: Call<DirectionsResponse>, response: Response<DirectionsResponse>) {
             if (!response.isSuccessful) {
-                val errorMsg = response.errorBody()?.string()
-                Log.e("MapboxDebug", "Error API (Code ${response.code()}): $errorMsg")
                 continuation.resume(emptyList())
                 return
             }
             val routes = response.body()?.routes() ?: emptyList()
-            Log.d("MapboxDebug", "Rutas obtenidas: ${routes.size}")
-            
             val result = routes.mapIndexed { i, r ->
                 val geometry = r.geometry()
                 val pts = if (geometry != null) {
                     try {
                         com.mapbox.geojson.LineString.fromPolyline(geometry, 6).coordinates()
                     } catch (e: Exception) {
-                        Log.w("MapboxDebug", "Fallo decodificación P6, intentando P5...")
-                        try {
-                            com.mapbox.geojson.LineString.fromPolyline(geometry, 5).coordinates()
-                        } catch (errorP5: Exception) {
-                            Log.e("MapboxDebug", "Fallo total de decodificación: ${errorP5.message}")
-                            emptyList<Point>()
-                        }
+                        com.mapbox.geojson.LineString.fromPolyline(geometry, 5).coordinates()
                     }
                 } else emptyList()
-                RouteInfo(pts, if (i == 0) "segura" else "rapida")
+                
+                RouteInfo(
+                    points = pts, 
+                    type = if (i == 0) "segura" else "rapida",
+                    duration = r.duration() ?: 0.0,
+                    distance = r.distance() ?: 0.0
+                )
             }
             continuation.resume(result)
         }
         override fun onFailure(call: Call<DirectionsResponse>, t: Throwable) {
-            Log.e("MapboxDebug", "Fallo de conexión crítico: ${t.message}")
             continuation.resume(emptyList())
         }
     })

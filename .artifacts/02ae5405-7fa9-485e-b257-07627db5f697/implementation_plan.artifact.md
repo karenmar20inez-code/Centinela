@@ -1,32 +1,37 @@
-# Plan de Implementación - SOS por Patrón de Movimiento Específico (Doble Sacudida)
+# Plan de Implementación - Rutas de Alta Precisión y Tráfico Real
 
-Se implementará un algoritmo de detección de gestos mediante el acelerómetro para identificar un patrón exacto: **dos sacudidas completas (arriba-abajo, arriba-abajo)**. Esto servirá como disparador físico del SOS, garantizando que movimientos aleatorios no activen la alarma por error.
+Se mejorará el sistema de navegación para utilizar datos de tráfico en tiempo real, proporcionando estimaciones de tiempo precisas tanto con tráfico actual como en condiciones normales (sin tráfico).
 
 ## Proposed Changes
 
-### Lógica de Detección de Patrón
+### 1. Estructura de Datos Mejorada
 
-#### [MODIFICAR] [SosService.kt](file:///C:/Users/lis_0/StudioProjects/Centinela/app/src/main/java/com/example/centinela/ui/SosService.kt)
-*   **SensorEventListener**: Implementar el monitoreo constante del `TYPE_ACCELEROMETER`.
-*   **Algoritmo de Estado**:
-    1.  Detectar un movimiento hacia **arriba** (aceleración positiva fuerte en el eje Y).
-    2.  Detectar un movimiento hacia **abajo** (aceleración negativa fuerte en el eje Y).
-    3.  Contar esto como **una ciclo completo**.
-    4.  Si se completan **dos ciclos** en menos de 2 segundos, disparar la emergencia.
-*   **Umbral de Fuerza**: Definir una sensibilidad de aprox. 12-15 m/s² para asegurar que el movimiento sea intencional y no producto de caminar.
+#### [MODIFICAR] [MapScreen.kt](file:///C:/Users/lis_0/StudioProjects/Centinela/app/src/main/java/com/example/centinela/ui/MapScreen.kt)
+*   Actualizar `RouteInfo` para incluir:
+    *   `duration`: Tiempo con tráfico actual (segundos).
+    *   `durationTypical`: Tiempo típico sin tráfico (segundos).
+    *   `distance`: Distancia total (metros).
 
-### Sincronización y Respuesta
-*   Al detectar el patrón de 2 sacudidas, el servicio llamará a `dispararEmergencia()`.
-*   Se añadirá una pequeña **vibración de confirmación** táctil para que el usuario sepa que el celular "sintió" la sacudida y está activando el auxilio.
+### 2. Lógica de Navegación Profesional
+
+#### [MODIFICAR] [MapScreen.kt](file:///C:/Users/lis_0/StudioProjects/Centinela/app/src/main/java/com/example/centinela/ui/MapScreen.kt)
+*   Cambiar el perfil de ruta a `DirectionsCriteria.PROFILE_DRIVING_TRAFFIC`.
+*   Extraer los metadatos de duración y duración típica del objeto `DirectionsRoute`.
+*   Asegurar el uso de `GEOMETRY_POLYLINE6` para máxima precisión en las curvas de las calles.
+
+### 3. Interfaz de Usuario (Feedback de Tiempo)
+
+#### [MODIFICAR] [MapScreen.kt](file:///C:/Users/lis_0/StudioProjects/Centinela/app/src/main/java/com/example/centinela/ui/MapScreen.kt)
+*   Añadir una pequeña tarjeta de información sobre el selector de rutas (Pill) que muestre:
+    *   Tiempo estimado (ej: "12 min").
+    *   Diferencia de tráfico (ej: "+3 min de tráfico" o "Tráfico fluido").
+    *   Distancia total.
+*   Aplicar el efecto Glassmorphism a esta nueva tarjeta.
 
 ## Verification Plan
 
 ### Manual Verification
-1.  **En el Emulador**: Ir a `Virtual Sensors` -> `Move`. Realizar movimientos rápidos de arriba a abajo.
-2.  **Logs**: Monitorear `SOS_Debug` para ver los mensajes:
-    *   `Sacudida detected: Ciclo 1/2`
-    *   `Sacudida detected: Ciclo 2/2 -> ¡SOS!`
-3.  **Resultado**: La app debe abrirse y enviar los SMS tras el patrón exacto.
-
-> [!IMPORTANT]
-> El patrón de "Arriba-Abajo x2" es mucho más seguro que una sacudida simple, ya que imita un gesto de urgencia deliberado.
+1.  Trazar una ruta en una zona conocida (ej. Zócalo -> Polanco).
+2.  Verificar que aparece la información de tiempo.
+3.  Confirmar que al cambiar entre "Segura" y "Rápida", los tiempos se actualizan correctamente.
+4.  Observar que la ruta sigue con precisión milimétrica el trazado de las calles.

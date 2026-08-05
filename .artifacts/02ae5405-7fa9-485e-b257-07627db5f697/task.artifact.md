@@ -1,6 +1,6 @@
-- `[x]` Implementar `SensorEventListener` en `SosService.kt`
-- `[x]` Inicializar `SensorManager` y registrar el acelerómetro
-- `[x]` Desarrollar el algoritmo de detección del patrón "Arriba-Abajo x2"
-- `[x]` Conectar la detección con la función `dispararEmergencia()`
-- `[x]` Añadir vibración de confirmación al detectar el patrón
-- `[x]` Verificar funcionamiento en el emulador (sensores virtuales)
+- `[x]` Actualizar data class `RouteInfo` con metadatos de tráfico
+- `[x]` Modificar `fetchRoutesSuspend` para usar `PROFILE_DRIVING_TRAFFIC` y extraer duraciones
+- `[x]` Crear el componente visual `TrafficInfoCard` con efecto Glassmorphism
+- `[x]` Integrar la tarjeta de tráfico en la pantalla principal del mapa
+- `[x]` Refinar el renderizado de rutas para máxima precisión P6
+- `[x]` Verificar estimaciones en el emulador
