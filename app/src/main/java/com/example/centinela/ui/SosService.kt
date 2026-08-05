@@ -35,8 +35,8 @@ class SosService : Service(), SensorEventListener {
     private var cycleCount = 0
     private var waitingForDown = false
     private var lastCycleTime: Long = 0
-    private val SHAKE_THRESHOLD = 13.0f // Fuerza del movimiento
-    private val PATTERN_TIMEOUT = 2500L // Tiempo máximo para completar las 2 sacudidas
+    private val SHAKE_THRESHOLD = 8.0f // Sensibilidad ajustada (antes 13.0f)
+    private val PATTERN_TIMEOUT = 3000L // Tiempo extendido (antes 2500L)
 
     private val powerButtonReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -123,8 +123,11 @@ class SosService : Service(), SensorEventListener {
         // Inicializar Sensores
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-        accelerometer?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
+        if (accelerometer == null) {
+            Log.e("SOS_Debug", "¡ERROR: El dispositivo no tiene acelerómetro!")
+        } else {
+            Log.d("SOS_Debug", "Acelerómetro encontrado, registrando listener...")
+            sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI)
         }
 
         val notification = crearNotificacion()
