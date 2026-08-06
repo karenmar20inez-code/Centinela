@@ -212,22 +212,10 @@ fun MapScreen(
                     LaunchedEffect(MainActivity.dispararAlertaGlobal) {
                         if (MainActivity.dispararAlertaGlobal) {
                             mostrarAlerta = true
-                            scope.launch {
-                                val userLocation = mapView.getMapboxMap().cameraState.center
-                                val (patrolPoint, eta) = simulatePatrolSearch(mapboxToken, userLocation)
-                                patrolEta = eta
-                                showingPatrolEta = true
-                                
-                                patrolAnnotationManager?.deleteAll()
-                                patrolAnnotationManager?.create(
-                                    CircleAnnotationOptions()
-                                        .withPoint(patrolPoint)
-                                        .withCircleRadius(12.0)
-                                        .withCircleColor("#0000FF")
-                                        .withCircleStrokeWidth(3.0)
-                                        .withCircleStrokeColor("#FFFFFF")
-                                )
-                            }
+                            // Simular asignación de patrulla
+                            patrolEta = (2..8).random()
+                            showingPatrolEta = true
+                            
                             MainActivity.enviarSmsGlobal(context)
                             MainActivity.dispararAlertaGlobal = false 
                         }
@@ -380,7 +368,10 @@ fun MapScreen(
                     // --- BOTÓN SOS CON ANIMACIÓN DE LATIDO ---
                     Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 40.dp).zIndex(10f)) {
                         Surface(modifier = Modifier.size(100.dp * scale), shape = CircleShape, color = colorAlerta.copy(alpha = opacity), shadowElevation = 12.dp, border = androidx.compose.foundation.BorderStroke(4.dp * scale, Color.White.copy(0.4f))) {
-                            Box(modifier = Modifier.fillMaxSize().clickable { MainActivity.dispararAlertaGlobal = true; mostrarAlerta = true }, contentAlignment = Alignment.Center) {
+                            Box(modifier = Modifier.fillMaxSize().clickable { 
+                                MainActivity.dispararAlertaGlobal = true 
+                                mostrarAlerta = true
+                            }, contentAlignment = Alignment.Center) {
                                 Text("SOS", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color.White)
                             }
                         }
@@ -392,7 +383,7 @@ fun MapScreen(
                             confirmButton = { Button(onClick = { mostrarAlerta = false; showingPatrolEta = false }) { Text("ESTOY BIEN") } },
                             title = { Text("¡ALERTA ENVIADA!") },
                             text = { 
-                                val patrolInfo = if (showingPatrolEta) "\n\nUna patrulla cercana ha sido asignada. Tiempo estimado de llegada: $patrolEta min." else ""
+                                val patrolInfo = if (showingPatrolEta) "\n\n🚓 Unidad asignada en camino. Tiempo estimado: $patrolEta min." else ""
                                 Text("Tu ubicación en tiempo real ha sido enviada al C5 de la CDMX y a tus contactos de confianza. El auxilio va en camino.$patrolInfo") 
                             }
                         )
