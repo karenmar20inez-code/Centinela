@@ -157,9 +157,9 @@ fun MapScreen(
     )
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val colorPrimario = MidnightBlue
-    val colorFondo = BoneWhite
-    val colorAlerta = CrimsonRed
+    val colorPrimario = MaterialTheme.colorScheme.primary
+    val colorFondo = MaterialTheme.colorScheme.background
+    val colorAlerta = MaterialTheme.colorScheme.tertiary
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (estadoUsuario == EstadoSimulacion.REGISTRO_LOCAL) {
@@ -169,8 +169,17 @@ fun MapScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "Centinela CDMX", fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = colorPrimario)
-                    Text(text = "Protegiendo tus pasos 🛡️", fontSize = 14.sp, color = SteelGray)
+                    Text(
+                        text = "Centinela CDMX",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Protegiendo tus pasos 🛡️",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                    )
                     Spacer(modifier = Modifier.height(60.dp))
 
                     if (faseRegistro == FaseRegistro.SELECCION) {
@@ -245,8 +254,19 @@ fun MapScreen(
                             .padding(top = 100.dp + welcomeOffset.dp)
                             .zIndex(10f)
                     ) {
-                        Surface(color = MidnightBlue, shape = RoundedCornerShape(30.dp), shadowElevation = 10.dp, modifier = Modifier.padding(horizontal = 24.dp)) {
-                            Text(text = "¡Bienvenido a Centinela, $nombreUsuario! 🛡️", color = Color.White, modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp), fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                        Surface(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(30.dp),
+                            shadowElevation = 10.dp,
+                            modifier = Modifier.padding(horizontal = 24.dp)
+                        ) {
+                            Text(
+                                text = "¡Bienvenido a Centinela, $nombreUsuario! 🛡️",
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp),
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
+                            )
                         }
                     }
 
@@ -255,8 +275,14 @@ fun MapScreen(
                         modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }, modifier = Modifier.size(50.dp).background(Color.White, CircleShape).shadow(4.dp, CircleShape)) { Icon(Icons.Default.Menu, null, tint = colorPrimario) }
-                        IconButton(onClick = { planificadorVisible = true }, modifier = Modifier.size(50.dp).background(colorPrimario, CircleShape).shadow(4.dp, CircleShape)) { Icon(Icons.Default.Search, null, tint = Color.White) }
+                        IconButton(
+                            onClick = { scope.launch { drawerState.open() } },
+                            modifier = Modifier.size(50.dp).background(MaterialTheme.colorScheme.surface, CircleShape).shadow(4.dp, CircleShape)
+                        ) { Icon(Icons.Default.Menu, null, tint = MaterialTheme.colorScheme.primary) }
+                        IconButton(
+                            onClick = { planificadorVisible = true },
+                            modifier = Modifier.size(50.dp).background(MaterialTheme.colorScheme.primary, CircleShape).shadow(4.dp, CircleShape)
+                        ) { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onPrimary) }
                     }
 
                     // --- PLANIFICADOR (AHORA ARRIBA CON ANIMACIÓN Y GLASS) ---
@@ -270,9 +296,37 @@ fun MapScreen(
                             Column(modifier = Modifier.padding(24.dp)) {
                                 Text("Planificador Seguro", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = colorPrimario)
                                 Spacer(modifier = Modifier.height(16.dp))
-                                OutlinedTextField(value = origen, onValueChange = { origen = it }, placeholder = { Text("Origen") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White.copy(0.5f)))
+                                OutlinedTextField(
+                                    value = origen,
+                                    onValueChange = { origen = it },
+                                    placeholder = { Text("Origen") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                        focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                                        unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                                        focusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                    )
+                                )
                                 Spacer(modifier = Modifier.height(8.dp))
-                                OutlinedTextField(value = destino, onValueChange = { destino = it }, placeholder = { Text("Destino") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White.copy(0.5f)))
+                                OutlinedTextField(
+                                    value = destino,
+                                    onValueChange = { destino = it },
+                                    placeholder = { Text("Destino") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                        focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                                        unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                                        focusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                    )
+                                )
                                 Spacer(modifier = Modifier.height(20.dp))
                                 Button(
                                     onClick = {
@@ -323,17 +377,22 @@ fun MapScreen(
                         val currentRoute = if (preferenciaActual == "rapida" && routesFound.size > 1) routesFound[1] else routesFound[0]
                         val min = (currentRoute.duration / 60).toInt()
                         val km = String.format(java.util.Locale.US, "%.1f", currentRoute.distance / 1000)
-                        Surface(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 225.dp).wrapContentWidth(), shape = RoundedCornerShape(24.dp), color = MidnightBlue.copy(alpha = 0.85f), shadowElevation = 8.dp) {
+                        Surface(
+                            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 225.dp).wrapContentWidth(),
+                            shape = RoundedCornerShape(24.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+                            shadowElevation = 8.dp
+                        ) {
                             Row(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Timer, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Timer, null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("$min min", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                                Text("$min min", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                                 Spacer(modifier = Modifier.width(12.dp))
-                                VerticalDivider(modifier = Modifier.height(20.dp).width(1.dp), color = Color.White.copy(0.3f))
+                                VerticalDivider(modifier = Modifier.height(20.dp).width(1.dp), color = MaterialTheme.colorScheme.onPrimary.copy(0.3f))
                                 Spacer(modifier = Modifier.width(12.dp))
-                                Icon(Icons.Default.Route, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Route, null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("$km km", color = Color.White.copy(0.9f), fontSize = 14.sp)
+                                Text("$km km", color = MaterialTheme.colorScheme.onPrimary.copy(0.9f), fontSize = 14.sp)
                             }
                         }
                     }
@@ -471,10 +530,10 @@ private fun renderizarRutaPremium(polyManager: PolylineAnnotationManager?, circl
         val r = if (pref == "rapida" && routes.size > 1) routes[1] else routes[0]
         if (r.points.isEmpty()) return
         polyManager.create(PolylineAnnotationOptions().withPoints(r.points).withLineColor("#FFFFFF").withLineWidth(14.0))
-        polyManager.create(PolylineAnnotationOptions().withPoints(r.points).withLineColor("#0047AB").withLineWidth(8.0))
+        polyManager.create(PolylineAnnotationOptions().withPoints(r.points).withLineColor("#00B4D8").withLineWidth(8.0))
         val startPoint = r.points.first(); val endPoint = r.points.last()
-        circleManager.create(CircleAnnotationOptions().withPoint(startPoint).withCircleRadius(10.0).withCircleColor("#FFFFFF").withCircleStrokeWidth(2.0).withCircleStrokeColor("#0047AB"))
-        circleManager.create(CircleAnnotationOptions().withPoint(startPoint).withCircleRadius(6.0).withCircleColor("#0047AB"))
+        circleManager.create(CircleAnnotationOptions().withPoint(startPoint).withCircleRadius(10.0).withCircleColor("#FFFFFF").withCircleStrokeWidth(2.0).withCircleStrokeColor("#00B4D8"))
+        circleManager.create(CircleAnnotationOptions().withPoint(startPoint).withCircleRadius(6.0).withCircleColor("#00B4D8"))
         circleManager.create(CircleAnnotationOptions().withPoint(endPoint).withCircleRadius(12.0).withCircleColor("#FFFFFF").withCircleStrokeWidth(3.0).withCircleStrokeColor("#FF0000"))
         circleManager.create(CircleAnnotationOptions().withPoint(endPoint).withCircleRadius(7.0).withCircleColor("#FF0000"))
     } catch (e: Exception) { Log.e("MapboxDebug", "Error render: ${e.message}") }
@@ -483,7 +542,23 @@ private fun renderizarRutaPremium(polyManager: PolylineAnnotationManager?, circl
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginTextField(value: String, onValueChange: (String) -> Unit, placeholder: String, icon: ImageVector) {
-    OutlinedTextField(value = value, onValueChange = onValueChange, placeholder = { Text(placeholder) }, modifier = Modifier.fillMaxWidth(), leadingIcon = { Icon(icon, contentDescription = null) }, singleLine = true, shape = RoundedCornerShape(8.dp))
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = { Text(placeholder) },
+        modifier = Modifier.fillMaxWidth(),
+        leadingIcon = { Icon(icon, contentDescription = null) },
+        singleLine = true,
+        shape = RoundedCornerShape(8.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = MaterialTheme.colorScheme.onBackground,
+            unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+            focusedLabelColor = MaterialTheme.colorScheme.primary,
+            unfocusedLabelColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+            focusedPlaceholderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+            unfocusedPlaceholderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+        )
+    )
 }
 
 @Composable

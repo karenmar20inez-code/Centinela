@@ -8,15 +8,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val DarkColorScheme = darkColorScheme(
-    primary = MidnightBlue,
-    secondary = SteelGray,
+    primary = CyberBlue,
+    secondary = ElectricCyan,
     tertiary = CrimsonRed,
-    background = DeepOcean,
-    surface = DeepOcean,
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onBackground = BoneWhite,
-    onSurface = BoneWhite
+    background = NightNavy,
+    surface = DeepSlate,
+    onPrimary = NightNavy,
+    onSecondary = NightNavy,
+    onBackground = Platinum,
+    onSurface = Platinum
 )
 
 private val LightColorScheme = lightColorScheme(

@@ -18,21 +18,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.centinela.ui.theme.BoneWhite
 import com.example.centinela.ui.theme.EmeraldGreen
-import com.example.centinela.ui.theme.MidnightBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(onBack: () -> Unit, onLogout: () -> Unit) {
     Scaffold(
-        containerColor = BoneWhite,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MidnightBlue,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 title = { Text("Mi Perfil", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
@@ -55,15 +53,20 @@ fun ProfileScreen(onBack: () -> Unit, onLogout: () -> Unit) {
                 modifier = Modifier
                     .size(100.dp)
                     .clip(CircleShape)
-                    .background(MidnightBlue.copy(0.1f)),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(60.dp), tint = MidnightBlue)
+                Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(60.dp), tint = MaterialTheme.colorScheme.primary)
             }
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            Text(text = "Ciudadano Seguro", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = MidnightBlue)
+            Text(
+                text = "Ciudadano Seguro",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.primary
+            )
             Text(text = "Nivel: Centinela Dorado 🛡️", color = Color.Gray, fontSize = 14.sp)
             
             Spacer(modifier = Modifier.height(32.dp))
@@ -72,7 +75,7 @@ fun ProfileScreen(onBack: () -> Unit, onLogout: () -> Unit) {
                 text = "Historial de Rutas Seguras",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MidnightBlue,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.align(Alignment.Start)
             )
             
@@ -106,7 +109,7 @@ fun RutaItem(ruta: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -116,7 +119,11 @@ fun RutaItem(ruta: String) {
             Icon(Icons.Default.Shield, contentDescription = null, tint = EmeraldGreen)
             Spacer(modifier = Modifier.width(16.dp))
             Column {
-                Text(text = ruta, fontWeight = FontWeight.Bold, color = MidnightBlue)
+                Text(
+                    text = ruta,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
                 Text(text = "Estatus: Sin Incidentes", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             }
         }

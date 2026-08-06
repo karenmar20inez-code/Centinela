@@ -1,5 +1,6 @@
 package com.example.centinela.ui
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,7 +17,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import com.example.centinela.data.EmergencyPrefs
-import com.example.centinela.ui.theme.BoneWhite
 import com.example.centinela.ui.theme.MidnightBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,13 +36,13 @@ fun ContactsScreen(onBack: () -> Unit) {
     var phone3 by remember { mutableStateOf(prefs.getContactPhone(3)) }
 
     Scaffold(
-        containerColor = BoneWhite,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MidnightBlue,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 title = { Text("Contactos de Emergencia", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
@@ -81,7 +81,7 @@ fun ContactsScreen(onBack: () -> Unit) {
                 },
                 modifier = Modifier.fillMaxWidth().height(55.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MidnightBlue)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Text("GUARDAR CONTACTOS", fontWeight = FontWeight.Bold)
             }
@@ -102,10 +102,17 @@ fun ContactInputCard(number: Int, name: String, phone: String, onUpdate: (String
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = "Contacto $number", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MidnightBlue)
+            Text(
+                text = "Contacto $number",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else MidnightBlue
+            )
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = name,
@@ -114,7 +121,13 @@ fun ContactInputCard(number: Int, name: String, phone: String, onUpdate: (String
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
                 shape = RoundedCornerShape(12.dp),
-                singleLine = true
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
             )
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
@@ -124,7 +137,13 @@ fun ContactInputCard(number: Int, name: String, phone: String, onUpdate: (String
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
                 shape = RoundedCornerShape(12.dp),
-                singleLine = true
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
             )
         }
     }
