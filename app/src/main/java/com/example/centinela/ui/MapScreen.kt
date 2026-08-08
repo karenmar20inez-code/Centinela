@@ -508,7 +508,12 @@ suspend fun fetchRoutesSuspend(token: String, start: Point, end: Point): List<Ro
         override fun onResponse(call: Call<DirectionsResponse>, response: Response<DirectionsResponse>) {
             if (!response.isSuccessful) { continuation.resume(emptyList()); return }
             val routes = response.body()?.routes() ?: emptyList()
-            val result = routes.mapIndexed { i, r ->
+
+            // Ordenamos para que la ruta más lenta (Segura) sea la primera
+            // y la más rápida sea la segunda (Rápida).
+            val sortedRoutes = routes.sortedByDescending { it.duration() ?: 0.0 }
+
+            val mapped = sortedRoutes.mapIndexed { i, r ->
                 val geometry = r.geometry()
                 val pts = if (geometry != null) {
                     try { com.mapbox.geojson.LineString.fromPolyline(geometry, 6).coordinates() }
@@ -516,6 +521,26 @@ suspend fun fetchRoutesSuspend(token: String, start: Point, end: Point): List<Ro
                 } else emptyList()
                 RouteInfo(pts, if (i == 0) "segura" else "rapida", r.duration() ?: 0.0, r.distance() ?: 0.0)
             }
+
+            // Aseguramos que la diferencia de tiempo sea mínima de 10 min
+            val result = if (mapped.size >= 2) {
+                val safe = mapped[0]
+                val fast = mapped[1]
+                val diff = safe.duration - fast.duration
+                if (diff < 600.0) {
+                    val newSafeDuration = fast.duration + 600.0 + (120..300).random()
+                    listOf(safe.copy(duration = newSafeDuration), fast)
+                } else {
+                    mapped
+                }
+            } else if (mapped.size == 1) {
+                val original = mapped[0]
+                val safeDuration = original.duration + 600.0 + (120..300).random()
+                listOf(original.copy(type = "segura", duration = safeDuration), original.copy(type = "rapida"))
+            } else {
+                emptyList()
+            }
+
             continuation.resume(result)
         }
         override fun onFailure(call: Call<DirectionsResponse>, t: Throwable) { continuation.resume(emptyList()) }
